@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "age": { "type": "number" },
+        "weight": { "type": "number" },
+        "gender": { "type": "string", "enum": ["male", "female", "other"] },
+        "dailyWaterGoal": { "type": "number", "description": "Daily water goal in ml" },
+        "dailyStepGoal": { "type": "number" },
+        "activityLevel": { "type": "string", "enum": ["sedentary", "moderate", "active"] },
+        "lockMode": { "type": "string", "enum": ["soft", "hard"] },
+        "homeMode": { "type": "boolean" },
+        "reminderInterval": { "type": "number", "description": "Interval in minutes" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name"]
+    },
+    "HydrationLog": {
+      "title": "Hydration Log",
+      "description": "Log of water intake",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "amount": { "type": "number", "description": "Amount in ml" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "amount", "timestamp"]
+    },
+    "ActivityLog": {
+      "title": "Activity Log",
+      "description": "Log of steps and activity",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "steps": { "type": "number" },
+        "calories": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "steps", "timestamp"]
+    },
+    "MeditationSession": {
+      "title": "Meditation Session",
+      "description": "Completed meditation session",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "duration": { "type": "number", "description": "Duration in minutes" },
+        "type": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "duration", "timestamp"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "Custom reminder or bill alert",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["water", "walking", "bill", "custom"] },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "isPaid": { "type": "boolean" },
+        "recurring": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "type"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and settings"
+    },
+    "/users/{userId}/hydration/{logId}": {
+      "schema": "HydrationLog",
+      "description": "Water intake logs"
+    },
+    "/users/{userId}/activity/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Activity and steps logs"
+    },
+    "/users/{userId}/meditation/{sessionId}": {
+      "schema": "MeditationSession",
+      "description": "Meditation sessions"
+    },
+    "/users/{userId}/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "User reminders and bill alerts"
+    }
+  }
+}

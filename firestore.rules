@@ -1,0 +1,145 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: /users/{userId}
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required)
+//   - name: string (required)
+//   - age: number (optional)
+//   - weight: number (optional)
+//   - gender: string (optional, enum: male, female, other)
+//   - dailyWaterGoal: number (optional)
+//   - dailyStepGoal: number (optional)
+//   - activityLevel: string (optional, enum: sedentary, moderate, active)
+//   - lockMode: string (optional, enum: soft, hard)
+//   - homeMode: boolean (optional)
+//   - reminderInterval: number (optional)
+//   - createdAt: string (optional, format: date-time)
+//
+// Collection: /users/{userId}/hydration/{logId}
+// Document ID: {logId}
+// Fields:
+//   - uid: string (required)
+//   - amount: number (required)
+//   - timestamp: string (required, format: date-time)
+//
+// Collection: /users/{userId}/activity/{logId}
+// Document ID: {logId}
+// Fields:
+//   - uid: string (required)
+//   - steps: number (required)
+//   - calories: number (optional)
+//   - timestamp: string (required, format: date-time)
+//
+// Collection: /users/{userId}/meditation/{sessionId}
+// Document ID: {sessionId}
+// Fields:
+//   - uid: string (required)
+//   - duration: number (required)
+//   - type: string (optional)
+//   - timestamp: string (required, format: date-time)
+//
+// Collection: /users/{userId}/reminders/{reminderId}
+// Document ID: {reminderId}
+// Fields:
+//   - uid: string (required)
+//   - title: string (required)
+//   - type: string (required, enum: water, walking, bill, custom)
+//   - dueDate: string (optional, format: date-time)
+//   - isPaid: boolean (optional)
+//   - recurring: boolean (optional)
+//   - createdAt: string (optional, format: date-time)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name']) &&
+             data.uid is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    }
+
+    function isValidHydrationLog(data) {
+      return data.keys().hasAll(['uid', 'amount', 'timestamp']) &&
+             data.uid == request.auth.uid &&
+             data.amount is number && data.amount > 0 &&
+             data.timestamp is string;
+    }
+
+    function isValidActivityLog(data) {
+      return data.keys().hasAll(['uid', 'steps', 'timestamp']) &&
+             data.uid == request.auth.uid &&
+             data.steps is number && data.steps >= 0 &&
+             data.timestamp is string;
+    }
+
+    function isValidMeditationSession(data) {
+      return data.keys().hasAll(['uid', 'duration', 'timestamp']) &&
+             data.uid == request.auth.uid &&
+             data.duration is number && data.duration > 0 &&
+             data.timestamp is string;
+    }
+
+    function isValidReminder(data) {
+      return data.keys().hasAll(['uid', 'title', 'type']) &&
+             data.uid == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.type in ['water', 'walking', 'bill', 'custom'];
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      match /hydration/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidHydrationLog(request.resource.data);
+        allow update: if isOwner(userId) && isValidHydrationLog(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /activity/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidActivityLog(request.resource.data);
+        allow update: if isOwner(userId) && isValidActivityLog(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /meditation/{sessionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMeditationSession(request.resource.data);
+        allow update: if isOwner(userId) && isValidMeditationSession(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /reminders/{reminderId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidReminder(request.resource.data);
+        allow update: if isOwner(userId) && isValidReminder(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

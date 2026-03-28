@@ -1,0 +1,5 @@
+{
+  "name": "HydroMove – Health Discipline Coach",
+  "description": "A modern health discipline coach that combines hydration, movement, mindfulness, and life-discipline reminders into a single clean and minimal user experience.",
+  "requestFramePermissions": ["geolocation", "notifications"]
+}
