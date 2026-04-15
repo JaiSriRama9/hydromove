@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, db, collection, query, where, onSnapshot, orderBy, limit } from '../firebase';
+import { auth, db, collection, query, where, onSnapshot, orderBy, limit, doc, OperationType, handleFirestoreError } from '../firebase';
 import { Droplets, Footprints, Brain, Bell, Flame, TrendingUp, Wind, Sun, CloudRain } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -9,21 +9,28 @@ import { cn } from '../lib/utils';
 
 interface DashboardProps {
   onNavigate: (tab: any) => void;
+  streak: number;
 }
 
-export default function Dashboard({ onNavigate }: DashboardProps) {
+export default function Dashboard({ onNavigate, streak }: DashboardProps) {
   const [hydrationProgress, setHydrationProgress] = useState(0);
   const [stepProgress, setStepProgress] = useState(0);
   const [hydrationScore, setHydrationScore] = useState<'Low' | 'Normal' | 'Optimal'>('Normal');
   const [weather, setWeather] = useState({ temp: 28, condition: 'Sunny' });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [upcomingAlerts, setUpcomingAlerts] = useState<any[]>([]);
+  const [waterGoal, setWaterGoal] = useState(3000);
+  const [stepGoal, setStepGoal] = useState(10000);
 
   const healthTips = [
     "Drinking water before meals can help with digestion.",
     "A 10-minute walk after lunch boosts your energy for the afternoon.",
     "Mindful breathing for just 2 minutes can significantly reduce stress.",
     "Consistency is key: try to hit your step goal 3 days in a row!",
+    "Your body is your temple, keep it hydrated.",
+    "Small steps every day lead to big results.",
+    "Discipline is choosing between what you want now and what you want most.",
+    "Success is the sum of small efforts, repeated day in and day out.",
   ];
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [activeInsightTab, setActiveInsightTab] = useState<'tips' | 'alerts'>('tips');
@@ -56,11 +63,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       if (total < 1000) setHydrationScore('Low');
       else if (total < 2500) setHydrationScore('Normal');
       else setHydrationScore('Optimal');
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/hydration`);
     });
 
     // Upcoming reminders
     const remindersQuery = query(
-      collection(db, `users/${auth.currentUser.uid}/reminders`),
+      collection(db, `users/${auth.currentUser?.uid}/reminders`),
       where('isPaid', '==', false),
       limit(3)
     );
@@ -71,16 +80,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         ...doc.data()
       }));
       setUpcomingAlerts(alerts);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/reminders`);
+    });
+
+    // Fetch goals
+    const userDocRef = doc(db, 'users', auth.currentUser?.uid || 'unknown');
+    const unsubscribeGoals = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.dailyWaterGoal) setWaterGoal(data.dailyWaterGoal);
+        if (data.dailyStepGoal) setStepGoal(data.dailyStepGoal);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `users/${auth.currentUser?.uid}`);
     });
 
     return () => {
       unsubscribeHydration();
       unsubscribeReminders();
+      unsubscribeGoals();
     };
   }, []);
 
-  const waterGoal = 3000;
-  const stepGoal = 10000;
   const currentSteps = 6432;
 
   const chartData = [
@@ -100,9 +122,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           <h2 className="text-2xl font-bold tracking-tight">Hello, {auth.currentUser?.displayName?.split(' ')[0] || 'User'}!</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">Ready for a disciplined day?</p>
         </div>
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-          {weather.condition === 'Sunny' ? <Sun className="text-amber-500" size={20} /> : <CloudRain className="text-blue-500" size={20} />}
-          <span className="text-sm font-bold">{weather.temp}°C</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+            <Flame className="text-orange-500" size={18} />
+            <span className="text-sm font-bold">{streak}</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+            {weather.condition === 'Sunny' ? <Sun className="text-amber-500" size={18} /> : <CloudRain className="text-blue-500" size={18} />}
+            <span className="text-sm font-bold">{weather.temp}°C</span>
+          </div>
         </div>
       </div>
 

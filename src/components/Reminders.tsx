@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, deleteDoc, doc, updateDoc } from '../firebase';
+import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, deleteDoc, doc, updateDoc, OperationType, handleFirestoreError } from '../firebase';
 import { Bell, Plus, Trash2, CheckCircle2, Circle, Calendar, CreditCard, Droplets, Footprints, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, addDays } from 'date-fns';
@@ -26,6 +26,8 @@ export default function Reminders() {
         ...doc.data()
       }));
       setReminders(reminderList);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/reminders`);
     });
 
     return () => unsubscribe();

@@ -43,6 +43,20 @@
       },
       "required": ["uid", "steps", "timestamp"]
     },
+    "ExerciseLog": {
+      "title": "Exercise Log",
+      "description": "Log of custom exercises",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "exerciseName": { "type": "string" },
+        "duration": { "type": "number", "description": "Duration in minutes" },
+        "intensity": { "type": "string", "enum": ["low", "moderate", "high"] },
+        "caloriesBurned": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "exerciseName", "duration", "timestamp"]
+    },
     "MeditationSession": {
       "title": "Meditation Session",
       "description": "Completed meditation session",
@@ -83,6 +97,10 @@
     "/users/{userId}/activity/{logId}": {
       "schema": "ActivityLog",
       "description": "Activity and steps logs"
+    },
+    "/users/{userId}/exercises/{logId}": {
+      "schema": "ExerciseLog",
+      "description": "Custom exercise logs"
     },
     "/users/{userId}/meditation/{sessionId}": {
       "schema": "MeditationSession",

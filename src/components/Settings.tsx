@@ -32,6 +32,9 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
   const [homeMode, setHomeMode] = useState(false);
   const [waterGoal, setWaterGoal] = useState(3000);
   const [stepGoal, setStepGoal] = useState(10000);
+  const [reminderInterval, setReminderInterval] = useState(60);
+  const [reminderStart, setReminderStart] = useState('08:00');
+  const [reminderEnd, setReminderEnd] = useState('22:00');
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -47,6 +50,9 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           setHomeMode(data.homeMode || false);
           setWaterGoal(data.dailyWaterGoal || 3000);
           setStepGoal(data.dailyStepGoal || 10000);
+          setReminderInterval(data.reminderInterval || 60);
+          setReminderStart(data.reminderStart || '08:00');
+          setReminderEnd(data.reminderEnd || '22:00');
         }
       } catch (error) {
         console.error('Failed to fetch profile', error);
@@ -108,6 +114,60 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
               const num = parseInt(val);
               setStepGoal(num);
               updateSetting('dailyStepGoal', num);
+            }
+          }
+        },
+      ]
+    },
+    {
+      title: 'Reminders',
+      items: [
+        { 
+          id: 'reminderInterval', 
+          icon: Bell, 
+          label: 'Reminder Interval', 
+          value: `${reminderInterval} mins`, 
+          color: 'text-blue-500',
+          action: () => {
+            const val = prompt('Enter reminder interval in minutes (e.g., 30, 60, 120):', reminderInterval.toString());
+            if (val) {
+              const num = parseInt(val);
+              if (!isNaN(num) && num > 0) {
+                setReminderInterval(num);
+                updateSetting('reminderInterval', num);
+              }
+            }
+          }
+        },
+        { 
+          id: 'reminderStart', 
+          icon: Sun, 
+          label: 'Start Time', 
+          value: reminderStart, 
+          color: 'text-amber-500',
+          action: () => {
+            const val = prompt('Enter start time (HH:mm):', reminderStart);
+            if (val && /^([01]\d|2[0-3]):([0-5]\d)$/.test(val)) {
+              setReminderStart(val);
+              updateSetting('reminderStart', val);
+            } else if (val) {
+              alert('Please enter time in HH:mm format');
+            }
+          }
+        },
+        { 
+          id: 'reminderEnd', 
+          icon: Moon, 
+          label: 'End Time', 
+          value: reminderEnd, 
+          color: 'text-indigo-500',
+          action: () => {
+            const val = prompt('Enter end time (HH:mm):', reminderEnd);
+            if (val && /^([01]\d|2[0-3]):([0-5]\d)$/.test(val)) {
+              setReminderEnd(val);
+              updateSetting('reminderEnd', val);
+            } else if (val) {
+              alert('Please enter time in HH:mm format');
             }
           }
         },

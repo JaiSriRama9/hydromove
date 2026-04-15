@@ -52,6 +52,16 @@
 //   - recurring: boolean (optional)
 //   - createdAt: string (optional, format: date-time)
 //
+// Collection: /users/{userId}/exercises/{logId}
+// Document ID: {logId}
+// Fields:
+//   - uid: string (required)
+//   - exerciseName: string (required)
+//   - duration: number (required)
+//   - intensity: string (optional, enum: low, moderate, high)
+//   - caloriesBurned: number (optional)
+//   - timestamp: string (required, format: date-time)
+//
 // ===============================================================
 
 rules_version = '2';
@@ -103,6 +113,14 @@ service cloud.firestore {
              data.type in ['water', 'walking', 'bill', 'custom'];
     }
 
+    function isValidExerciseLog(data) {
+      return data.keys().hasAll(['uid', 'exerciseName', 'duration', 'timestamp']) &&
+             data.uid == request.auth.uid &&
+             data.exerciseName is string && data.exerciseName.size() > 0 && data.exerciseName.size() < 100 &&
+             data.duration is number && data.duration > 0 &&
+             data.timestamp is string;
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -138,6 +156,13 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidReminder(request.resource.data);
         allow update: if isOwner(userId) && isValidReminder(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /exercises/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidExerciseLog(request.resource.data);
+        allow update: if isOwner(userId) && isValidExerciseLog(request.resource.data);
         allow delete: if isOwner(userId);
       }
     }

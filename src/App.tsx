@@ -24,6 +24,7 @@ import Mindfulness from './components/Mindfulness';
 import Reminders from './components/Reminders';
 import Settings from './components/Settings';
 import DisciplineLock from './components/DisciplineLock';
+import ErrorBoundary from './components/ErrorBoundary';
 
 type Tab = 'dashboard' | 'hydration' | 'activity' | 'mindfulness' | 'reminders' | 'settings';
 
@@ -70,13 +71,13 @@ export default function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard onNavigate={setActiveTab} />;
+      case 'dashboard': return <Dashboard onNavigate={setActiveTab} streak={streak} />;
       case 'hydration': return <Hydration />;
       case 'activity': return <Activity />;
       case 'mindfulness': return <Mindfulness />;
       case 'reminders': return <Reminders />;
       case 'settings': return <Settings isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />;
-      default: return <Dashboard onNavigate={setActiveTab} />;
+      default: return <Dashboard onNavigate={setActiveTab} streak={streak} />;
     }
   };
 
@@ -142,7 +143,9 @@ export default function App() {
             transition={{ duration: 0.2 }}
             className="h-full"
           >
-            {renderContent()}
+            <ErrorBoundary>
+              {renderContent()}
+            </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>

@@ -1,14 +1,53 @@
 import { useState, useEffect, useRef } from 'react';
-import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy } from '../firebase';
-import { Brain, Play, Pause, RotateCcw, Wind, CloudRain, Waves, Trees, Timer, CheckCircle2, Music, Volume2, Trophy, Star, Zap, Calendar } from 'lucide-react';
+import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, OperationType, handleFirestoreError } from '../firebase';
+import { Brain, Play, Pause, RotateCcw, Wind, CloudRain, Waves, Trees, Timer, CheckCircle2, Music, Volume2, Trophy, Star, Zap, Calendar, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfDay, subDays, isSameDay } from 'date-fns';
 
 import { cn } from '../lib/utils';
 
+const breathingPatterns = {
+  box: {
+    label: 'Box Breathing',
+    desc: '4-4-4-4 pattern for stress relief',
+    phases: [
+      { type: 'Inhale', duration: 4, scale: 1.5 },
+      { type: 'Hold', duration: 4, scale: 1.5 },
+      { type: 'Exhale', duration: 4, scale: 1 },
+      { type: 'Hold', duration: 4, scale: 1 },
+    ],
+    color: 'bg-blue-500',
+    theme: 'from-blue-500 to-indigo-600'
+  },
+  relax: {
+    label: '4-7-8 Relax',
+    desc: 'Deep relaxation and sleep aid',
+    phases: [
+      { type: 'Inhale', duration: 4, scale: 1.5 },
+      { type: 'Hold', duration: 7, scale: 1.5 },
+      { type: 'Exhale', duration: 8, scale: 1 },
+    ],
+    color: 'bg-purple-500',
+    theme: 'from-purple-500 to-pink-600'
+  },
+  equal: {
+    label: 'Equal Breathing',
+    desc: 'Balance and focus',
+    phases: [
+      { type: 'Inhale', duration: 4, scale: 1.5 },
+      { type: 'Exhale', duration: 4, scale: 1 },
+    ],
+    color: 'bg-teal-500',
+    theme: 'from-teal-500 to-emerald-600'
+  }
+};
+
 export default function Mindfulness() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [sessionType, setSessionType] = useState<'rain' | 'ocean' | 'forest' | 'breathing'>('breathing');
+  const [breathingPattern, setBreathingPattern] = useState<keyof typeof breathingPatterns>('box');
+  const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
+  const [phaseTimeLeft, setPhaseTimeLeft] = useState(breathingPatterns.box.phases[0].duration);
   const [duration, setDuration] = useState(5); // minutes
   const [timeLeft, setTimeLeft] = useState(duration * 60);
   const [completed, setCompleted] = useState(false);
@@ -58,6 +97,8 @@ export default function Mindfulness() {
       }
 
       setStats({ sessions, totalMinutes, streak });
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/meditation`);
     });
 
     return () => unsubscribe();
@@ -97,6 +138,25 @@ export default function Mindfulness() {
     if (isPlaying && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => prev - 1);
+        
+        if (sessionType === 'breathing') {
+          setPhaseTimeLeft(prevPhase => {
+            if (prevPhase <= 1) {
+              // Move to next phase
+              const pattern = breathingPatterns[breathingPattern];
+              const nextIndex = (currentPhaseIndex + 1) % pattern.phases.length;
+              setCurrentPhaseIndex(nextIndex);
+              
+              // Play phase transition sound
+              const beep = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+              beep.volume = volume / 200; // Quieter beep
+              beep.play().catch(() => {});
+              
+              return pattern.phases[nextIndex].duration;
+            }
+            return prevPhase - 1;
+          });
+        }
       }, 1000);
     } else if (timeLeft === 0) {
       handleComplete();
@@ -106,7 +166,7 @@ export default function Mindfulness() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying, timeLeft]);
+  }, [isPlaying, timeLeft, sessionType, breathingPattern, currentPhaseIndex, volume]);
 
   const handleComplete = async () => {
     setIsPlaying(false);
@@ -128,6 +188,8 @@ export default function Mindfulness() {
     setIsPlaying(false);
     setTimeLeft(duration * 60);
     setCompleted(false);
+    setCurrentPhaseIndex(0);
+    setPhaseTimeLeft(breathingPatterns[breathingPattern].phases[0].duration);
   };
 
   const formatTime = (seconds: number) => {
@@ -144,6 +206,8 @@ export default function Mindfulness() {
   ];
 
   const durations = [5, 10, 15];
+  const [showCustomDuration, setShowCustomDuration] = useState(false);
+  const [customDuration, setCustomDuration] = useState('');
 
   return (
     <div className="space-y-6 pb-8">
@@ -151,17 +215,27 @@ export default function Mindfulness() {
       <audio ref={audioRef} />
       <div className={cn(
         "relative h-80 w-full rounded-[40px] overflow-hidden shadow-2xl transition-colors duration-1000 flex flex-col items-center justify-center text-white",
-        sessionType === 'breathing' ? "bg-blue-500" : 
-        sessionType === 'rain' ? "bg-indigo-500" : 
-        sessionType === 'ocean' ? "bg-cyan-500" : "bg-green-600"
+        sessionType === 'breathing' 
+          ? `bg-gradient-to-br ${breathingPatterns[breathingPattern].theme}` 
+          : sessionType === 'rain' ? "bg-indigo-500" : 
+            sessionType === 'ocean' ? "bg-cyan-500" : "bg-green-600"
       )}>
         {/* Animated Background */}
         <motion.div 
           animate={{ 
-            scale: isPlaying ? [1, 1.2, 1] : 1,
+            scale: isPlaying 
+              ? (sessionType === 'breathing' 
+                  ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].scale 
+                  : [1, 1.2, 1]) 
+              : 1,
             opacity: isPlaying ? [0.3, 0.5, 0.3] : 0.2
           }}
-          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+          transition={{ 
+            duration: sessionType === 'breathing' 
+              ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].duration 
+              : 8, 
+            ease: "easeInOut" 
+          }}
           className="absolute inset-0 bg-white/20 rounded-full blur-3xl -m-20"
         />
         
@@ -202,7 +276,19 @@ export default function Mindfulness() {
                       className="transition-all duration-1000 ease-linear"
                     />
                   </svg>
-                  <span className="text-5xl font-black font-mono">{formatTime(timeLeft)}</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-4xl font-black font-mono">{formatTime(timeLeft)}</span>
+                    {isPlaying && sessionType === 'breathing' && (
+                      <motion.span 
+                        key={currentPhaseIndex}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs font-bold uppercase tracking-[0.2em] mt-1 text-white/80"
+                      >
+                        {breathingPatterns[breathingPattern].phases[currentPhaseIndex].type}
+                      </motion.span>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="mt-8 flex items-center gap-6">
@@ -260,26 +346,63 @@ export default function Mindfulness() {
             <>
               {/* Duration Selection */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Duration</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  {durations.map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => {
-                        setDuration(d);
-                        setTimeLeft(d * 60);
-                      }}
-                      className={cn(
-                        "py-4 rounded-2xl font-bold transition-all border",
-                        duration === d 
-                          ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white" 
-                          : "bg-white text-slate-500 border-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
-                      )}
-                    >
-                      {d} min
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between px-2">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Duration</h4>
+                  <button 
+                    onClick={() => setShowCustomDuration(!showCustomDuration)}
+                    className="text-[10px] font-bold text-green-500 uppercase tracking-widest"
+                  >
+                    {showCustomDuration ? 'Quick Select' : 'Custom'}
+                  </button>
                 </div>
+                
+                {showCustomDuration ? (
+                  <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                      <input 
+                        type="number" 
+                        value={customDuration}
+                        onChange={(e) => setCustomDuration(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 text-lg font-bold focus:outline-none focus:border-green-500 transition-all"
+                        placeholder="Enter minutes..."
+                      />
+                      <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">min</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const mins = parseInt(customDuration);
+                        if (mins > 0) {
+                          setDuration(mins);
+                          setTimeLeft(mins * 60);
+                          setShowCustomDuration(false);
+                        }
+                      }}
+                      className="bg-green-500 text-white px-6 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all active:scale-95"
+                    >
+                      Set
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {durations.map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => {
+                          setDuration(d);
+                          setTimeLeft(d * 60);
+                        }}
+                        className={cn(
+                          "py-4 rounded-2xl font-bold transition-all border",
+                          duration === d 
+                            ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white" 
+                            : "bg-white text-slate-500 border-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
+                        )}
+                      >
+                        {d} min
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Sound Selection */}
@@ -289,7 +412,10 @@ export default function Mindfulness() {
                   {sessionOptions.map((opt) => (
                     <button
                       key={opt.id}
-                      onClick={() => setSessionType(opt.id as any)}
+                      onClick={() => {
+                        setSessionType(opt.id as any);
+                        if (opt.id !== 'breathing') setIsPlaying(false);
+                      }}
                       className={cn(
                         "flex items-center gap-4 p-4 rounded-3xl border transition-all",
                         sessionType === opt.id 
@@ -311,6 +437,54 @@ export default function Mindfulness() {
                   ))}
                 </div>
               </div>
+
+              {/* Breathing Patterns - Only visible when breathing is selected */}
+              {sessionType === 'breathing' && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="space-y-3"
+                >
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Breathing Technique</h4>
+                  <div className="space-y-3">
+                    {Object.entries(breathingPatterns).map(([id, pattern]) => (
+                      <button
+                        key={id}
+                        onClick={() => {
+                          setBreathingPattern(id as any);
+                          setCurrentPhaseIndex(0);
+                          setPhaseTimeLeft(pattern.phases[0].duration);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-4 p-4 rounded-3xl border transition-all text-left",
+                          breathingPattern === id 
+                            ? "bg-white dark:bg-slate-900 border-slate-900 dark:border-white shadow-lg" 
+                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800"
+                        )}
+                      >
+                        <div className={cn(
+                          "h-10 w-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br",
+                          pattern.theme
+                        )}>
+                          <Wind size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <h5 className={cn(
+                            "text-sm font-bold",
+                            breathingPattern === id ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"
+                          )}>{pattern.label}</h5>
+                          <p className="text-[10px] text-slate-400">{pattern.desc}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          {pattern.phases.map((p, i) => (
+                            <div key={i} className="h-1 w-3 rounded-full bg-slate-100 dark:bg-slate-800" />
+                          ))}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
             </>
           )}
         </motion.div>
@@ -423,6 +597,37 @@ export default function Mindfulness() {
               </motion.div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Recent Sessions History */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Recent Sessions</h4>
+          <Calendar size={14} className="text-slate-400" />
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+          {stats.sessions === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-slate-400 italic">No sessions recorded yet.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
+              {/* This would ideally be fetched from a separate state, but for now we'll show a placeholder or use the existing stats if we had the logs */}
+              <div className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
+                    <Wind size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold">Breathing Session</p>
+                    <p className="text-[10px] text-slate-400">Today, {format(new Date(), 'h:mm a')}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">5 min</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

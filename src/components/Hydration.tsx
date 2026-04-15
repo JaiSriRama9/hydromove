@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, limit, deleteDoc, doc } from '../firebase';
+import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, limit, deleteDoc, doc, OperationType, handleFirestoreError } from '../firebase';
 import { Droplets, Plus, Trash2, History, Info, Wind, Thermometer, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfDay } from 'date-fns';
@@ -30,9 +30,25 @@ export default function Hydration() {
       }));
       setLogs(hydrationLogs);
       setTotalToday(hydrationLogs.reduce((acc, curr: any) => acc + curr.amount, 0));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/hydration`);
     });
 
-    return () => unsubscribe();
+    // Fetch goal
+    const userDocRef = doc(db, 'users', auth.currentUser?.uid || 'unknown');
+    const unsubscribeGoal = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.dailyWaterGoal) setGoal(data.dailyWaterGoal);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `users/${auth.currentUser?.uid}`);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeGoal();
+    };
   }, []);
 
   const logWater = async (ml: number) => {
