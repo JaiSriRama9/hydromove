@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, onAuthStateChanged, FirebaseUser } from './firebase';
+import { auth, onAuthStateChanged, FirebaseUser, db, doc, onSnapshot, collection, query, where, OperationType, handleFirestoreError } from './firebase';
 import { 
   Droplets, 
   Footprints, 
@@ -25,6 +25,7 @@ import Reminders from './components/Reminders';
 import Settings from './components/Settings';
 import DisciplineLock from './components/DisciplineLock';
 import ErrorBoundary from './components/ErrorBoundary';
+import Onboarding from './components/Onboarding';
 
 type Tab = 'dashboard' | 'hydration' | 'activity' | 'mindfulness' | 'reminders' | 'settings';
 
@@ -36,14 +37,55 @@ export default function App() {
   const [streak, setStreak] = useState(5);
   const [lockActive, setLockActive] = useState(false);
   const [lockReason, setLockReason] = useState<'hydration' | 'walking' | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [reminderCount, setReminderCount] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false);
+      if (!user) {
+        setLoading(false);
+        setOnboardingCompleted(null);
+      }
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Fetch user profile for onboarding status
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setOnboardingCompleted(!!data.onboardingCompleted);
+        if (data.streak !== undefined) setStreak(data.streak);
+      } else {
+        setOnboardingCompleted(false);
+      }
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+      setLoading(false);
+    });
+
+    // Fetch reminder count (upcoming or overdue)
+    const remindersQuery = query(
+      collection(db, `users/${user.uid}/reminders`),
+      where('isPaid', '==', false)
+    );
+    const unsubscribeReminders = onSnapshot(remindersQuery, (snapshot) => {
+      setReminderCount(snapshot.docs.length);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/reminders`);
+    });
+
+    return () => {
+      unsubscribeProfile();
+      unsubscribeReminders();
+    };
+  }, [user]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -112,7 +154,11 @@ export default function App() {
             className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
           >
             <Bell size={20} />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-orange-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+            {reminderCount > 0 && (
+              <span className="absolute top-1 right-1 h-4 w-4 bg-orange-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">
+                {reminderCount}
+              </span>
+            )}
           </button>
           <button 
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -158,13 +204,18 @@ export default function App() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-300",
+                "flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-300 relative",
                 activeTab === tab.id 
                   ? "text-green-600 dark:text-green-400 scale-110" 
                   : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
               )}
             >
               <tab.icon size={22} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
+              {tab.id === 'reminders' && reminderCount > 0 && (
+                <span className="absolute top-0 right-2 h-4 w-4 bg-orange-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">
+                  {reminderCount}
+                </span>
+              )}
               <span className="text-[10px] font-medium uppercase tracking-wider">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div 
@@ -184,6 +235,13 @@ export default function App() {
             reason={lockReason} 
             onUnlock={() => setLockActive(false)} 
           />
+        )}
+      </AnimatePresence>
+
+      {/* Onboarding Overlay */}
+      <AnimatePresence>
+        {onboardingCompleted === false && (
+          <Onboarding onComplete={() => setOnboardingCompleted(true)} />
         )}
       </AnimatePresence>
     </div>

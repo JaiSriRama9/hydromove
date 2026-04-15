@@ -82,7 +82,8 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'name']) &&
              data.uid is string &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100;
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             (!('onboardingCompleted' in data) || data.onboardingCompleted is bool);
     }
 
     function isValidHydrationLog(data) {
@@ -110,7 +111,9 @@ service cloud.firestore {
       return data.keys().hasAll(['uid', 'title', 'type']) &&
              data.uid == request.auth.uid &&
              data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
-             data.type in ['water', 'walking', 'bill', 'custom'];
+             data.type is string &&
+             (!('recurrence' in data) || data.recurrence in ['none', 'daily', 'weekly', 'monthly', 'yearly']) &&
+             (!('icon' in data) || data.icon is string);
     }
 
     function isValidExerciseLog(data) {

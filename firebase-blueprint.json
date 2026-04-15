@@ -16,6 +16,7 @@
         "lockMode": { "type": "string", "enum": ["soft", "hard"] },
         "homeMode": { "type": "boolean" },
         "reminderInterval": { "type": "number", "description": "Interval in minutes" },
+        "onboardingCompleted": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "name"]
@@ -76,10 +77,12 @@
       "properties": {
         "uid": { "type": "string" },
         "title": { "type": "string" },
-        "type": { "type": "string", "enum": ["water", "walking", "bill", "custom"] },
+        "type": { "type": "string" },
+        "icon": { "type": "string", "description": "Icon name for custom types" },
         "dueDate": { "type": "string", "format": "date-time" },
         "isPaid": { "type": "boolean" },
         "recurring": { "type": "boolean" },
+        "recurrence": { "type": "string", "enum": ["none", "daily", "weekly", "monthly", "yearly"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "title", "type"]
