@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { auth, googleProvider, signInWithPopup } from '../firebase';
+import { auth, googleProvider, signInWithPopup, signInAnonymously } from '../firebase';
 import { motion } from 'motion/react';
 import { Droplets, LogIn, Mail, Phone, User as UserIcon } from 'lucide-react';
 
@@ -12,6 +12,9 @@ export default function Auth({ onLogin }: AuthProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
+  const [otpStep, setOtpStep] = useState<'phone' | 'code'>('phone');
+  const [otpCode, setOtpCode] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleGoogleLogin = async () => {
     try {
@@ -22,9 +25,39 @@ export default function Auth({ onLogin }: AuthProps) {
     }
   };
 
-  const handleGuestLogin = () => {
-    // In a real app, we might use anonymous auth
-    onLogin();
+  const handleGuestLogin = async () => {
+    try {
+      await signInAnonymously(auth);
+      onLogin();
+    } catch (error) {
+      console.error('Guest login failed', error);
+    }
+  };
+
+  const handleSendOtp = () => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length >= 10) {
+      setOtpStep('code');
+    } else {
+      alert('Please enter a valid 10-digit phone number');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpCode === '123456') {
+      setIsLoggingIn(true);
+      try {
+        await signInAnonymously(auth);
+        onLogin();
+      } catch (error) {
+        console.error('Login failed', error);
+        alert('Login failed. Please try again.');
+      } finally {
+        setIsLoggingIn(false);
+      }
+    } else {
+      alert('Invalid code. For testing, use: 123456');
+    }
   };
 
   return (
@@ -82,22 +115,54 @@ export default function Auth({ onLogin }: AuthProps) {
 
           {mode === 'otp' && (
             <div className="space-y-4 text-left">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Phone Number</label>
-              <input 
-                type="tel" 
-                placeholder="+1 234 567 890"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:border-green-500 focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
+              {otpStep === 'phone' ? (
+                <>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Phone Number</label>
+                  <input 
+                    type="tel" 
+                    placeholder="Enter 10 digit number"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:border-green-500 focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                  <button 
+                    className="w-full rounded-2xl bg-green-500 py-4 font-bold text-white shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all"
+                    onClick={handleSendOtp}
+                  >
+                    Send OTP
+                  </button>
+                </>
+              ) : (
+                <>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Verification Code</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter 123456"
+                    maxLength={6}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:border-green-500 focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-white text-center text-2xl tracking-[0.5em] font-bold"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                  />
+                  <button 
+                    disabled={isLoggingIn}
+                    className="w-full rounded-2xl bg-green-500 py-4 font-bold text-white shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all disabled:opacity-50"
+                    onClick={handleVerifyOtp}
+                  >
+                    {isLoggingIn ? 'Verifying...' : 'Verify & Login'}
+                  </button>
+                  <button 
+                    onClick={() => setOtpStep('phone')}
+                    className="w-full text-center text-xs font-medium text-slate-500 hover:text-green-500 transition-colors"
+                  >
+                    Change Phone Number
+                  </button>
+                </>
+              )}
               <button 
-                className="w-full rounded-2xl bg-green-500 py-4 font-bold text-white shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all"
-                onClick={() => alert('OTP verification is simulated. Please use Google Login for real auth.')}
-              >
-                Send OTP
-              </button>
-              <button 
-                onClick={() => setMode('login')}
+                onClick={() => {
+                  setMode('login');
+                  setOtpStep('phone');
+                }}
                 className="w-full text-center text-sm font-medium text-slate-500 hover:text-green-500 transition-colors"
               >
                 Back to Login
