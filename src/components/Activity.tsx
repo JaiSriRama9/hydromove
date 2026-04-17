@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, limit, doc, OperationType, handleFirestoreError } from '../firebase';
-import { Footprints, Flame, TrendingUp, Timer, Wind, Heart, MapPin, Activity as ActivityIcon, Plus, X, History, Dumbbell, Zap, ChevronRight, Info } from 'lucide-react';
+import { Footprints, Flame, TrendingUp, Timer, Wind, Heart, MapPin, Activity as ActivityIcon, Plus, X, History, Dumbbell, Zap, ChevronRight, Info, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import { format, startOfDay, subDays, isSameDay } from 'date-fns';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -22,6 +23,13 @@ export default function Activity() {
   const [weeklySteps, setWeeklySteps] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [googleFitToken, setGoogleFitToken] = useState<string | null>(localStorage.getItem('google_fit_token'));
+
+  // Calculate stats
+  const totalCaloriesToday = exerciseLogs
+    .filter(log => isSameDay(new Date(log.timestamp), new Date()))
+    .reduce((acc, log) => acc + (log.caloriesBurned || 0), 0) + calories;
+
+  const lastExercise = exerciseLogs[0];
 
   const [customExercise, setCustomExercise] = useState({
     name: '',
@@ -215,7 +223,49 @@ export default function Activity() {
   const progress = Math.min((steps / goal) * 100, 100);
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-24">
+      {/* Dynamic Summary Section */}
+      <div className="grid grid-cols-2 gap-4 pt-2">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-glass p-5 rounded-[32px] shadow-sm flex flex-col justify-center"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-6 w-6 bg-brand/10 rounded-lg flex items-center justify-center text-brand">
+              <History size={14} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Last Session</span>
+          </div>
+          {lastExercise ? (
+            <div className="space-y-1">
+              <h5 className="text-sm font-black truncate">{lastExercise.exerciseName}</h5>
+              <p className="text-[10px] font-bold text-brand uppercase">{lastExercise.duration} mins • {lastExercise.caloriesBurned} kcal</p>
+            </div>
+          ) : (
+            <p className="text-xs font-bold text-slate-300 italic">No logs today</p>
+          )}
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-glass p-5 rounded-[32px] shadow-sm flex flex-col justify-center"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-6 w-6 bg-orange-50 dark:bg-orange-900/30 rounded-lg flex items-center justify-center text-orange-500">
+              <Flame size={14} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Burned Today</span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{totalCaloriesToday}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">kcal</span>
+          </div>
+        </motion.div>
+      </div>
+
       {/* Progress Header */}
       <div className="relative h-64 w-full bg-brand rounded-[40px] overflow-hidden shadow-2xl shadow-brand/30 flex flex-col items-center justify-center text-white transition-colors duration-500">
         {/* Animated Background */}
@@ -315,19 +365,30 @@ export default function Activity() {
           <TrendingUp size={80} />
         </div>
         <div className="relative z-10">
-          <h4 className="text-lg font-bold mb-2">Google Fit Sync</h4>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-bold">Google Fit Sync</h4>
+            {googleFitToken && (
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-brand/20 rounded-lg">
+                <CheckCircle2 size={12} className="text-brand" />
+                <span className="text-[8px] font-black uppercase tracking-tighter text-brand">Connected</span>
+              </div>
+            )}
+          </div>
           <p className="text-sm text-slate-400 mb-6">Connect your Google Fit account to automatically sync steps, heart rate, and activity data.</p>
           <button 
             onClick={handleConnectGoogleFit}
             disabled={isSyncing}
-            className="w-full bg-white text-slate-900 py-4 rounded-2xl font-bold hover:bg-slate-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className={cn(
+              "w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50",
+              googleFitToken ? "bg-slate-800 text-white border border-slate-700" : "bg-white text-slate-900 shadow-xl"
+            )}
           >
             {isSyncing ? (
-              <div className="h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+              <div className="h-5 w-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
                 <img src="https://www.google.com/favicon.ico" alt="Google" className="h-5 w-5" />
-                Connect Google Fit
+                {googleFitToken ? 'Sync Data Now' : 'Connect Google Fit'}
               </>
             )}
           </button>
@@ -335,35 +396,51 @@ export default function Activity() {
       </div>
 
       {/* Weekly Progress Visualization */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Weekly Steps</h4>
-          <TrendingUp size={16} className="text-slate-400" />
+      <div className="bg-glass p-6 rounded-[40px] shadow-sm">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Weekly Progress</h4>
+            <p className="text-[10px] font-bold text-brand uppercase mt-1">Goal: {goal.toLocaleString()} steps/day</p>
+          </div>
+          <TrendingUp size={20} className="text-brand shadow-glow" />
         </div>
-        <div className="flex justify-between items-end h-32 gap-3">
-          {weeklySteps.map((day, i) => {
-            const h = Math.min((day.steps / goal) * 100, 100);
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative">
-                <div className="w-full bg-slate-50 dark:bg-slate-800 rounded-full h-full relative overflow-hidden">
-                  <motion.div 
-                    initial={{ height: 0 }}
-                    animate={{ height: `${h}%` }}
-                    className={cn(
-                      "absolute bottom-0 left-0 right-0 rounded-full transition-all",
-                      h >= 100 ? "bg-brand" : "bg-brand/40"
-                    )}
+        
+        <div className="h-48 w-full mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={weeklySteps}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+              <XAxis 
+                dataKey="day" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }}
+                dy={10}
+              />
+              <Tooltip 
+                cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-xl border border-white/10">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{payload[0].payload.day}</p>
+                        <p className="text-sm font-black">{payload[0].value.toLocaleString()} <span className="text-[10px] font-bold opacity-60">steps</span></p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="steps" radius={[10, 10, 10, 10]} barSize={20}>
+                {weeklySteps.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.steps >= goal ? 'var(--color-brand)' : 'var(--brand-glow)'} 
+                    className="transition-all duration-500"
                   />
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">{day.day}</span>
-                
-                {/* Tooltip */}
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
-                  {day.steps.toLocaleString()} steps
-                </div>
-              </div>
-            );
-          })}
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

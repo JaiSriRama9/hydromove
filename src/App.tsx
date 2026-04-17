@@ -169,6 +169,20 @@ export default function App() {
     )}>
       {/* Dynamic Background Glow */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        {user?.photoURL && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isDarkMode ? 0.3 : 0.15 }}
+            className="absolute inset-0 transition-opacity duration-1000"
+          >
+            <img 
+              src={user.photoURL} 
+              alt="" 
+              className="h-full w-full object-cover blur-[120px] scale-150"
+              referrerPolicy="no-referrer"
+            />
+          </motion.div>
+        )}
         <div className="atmospheric-glow absolute inset-0 opacity-40 dark:opacity-20 transition-all duration-1000" />
         <div className="absolute -top-[50%] -left-[50%] h-[200%] w-[200%] bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05)_0%,transparent_50%)] animate-pulse" />
       </div>
