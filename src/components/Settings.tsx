@@ -35,6 +35,8 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
   const [reminderInterval, setReminderInterval] = useState(60);
   const [reminderStart, setReminderStart] = useState('08:00');
   const [reminderEnd, setReminderEnd] = useState('22:00');
+  const [editingGoal, setEditingGoal] = useState<'water' | 'step' | null>(null);
+  const [tempGoal, setTempGoal] = useState<string>('');
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -93,12 +95,17 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           label: 'Daily Water Goal', 
           value: `${waterGoal}ml`, 
           color: 'text-blue-500',
+          isEditing: editingGoal === 'water',
           action: () => {
-            const val = prompt('Enter new water goal (ml):', waterGoal.toString());
-            if (val) {
-              const num = parseInt(val);
+            setEditingGoal('water');
+            setTempGoal(waterGoal.toString());
+          },
+          save: () => {
+            const num = parseInt(tempGoal);
+            if (!isNaN(num) && num > 0) {
               setWaterGoal(num);
               updateSetting('dailyWaterGoal', num);
+              setEditingGoal(null);
             }
           }
         },
@@ -108,12 +115,17 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           label: 'Daily Step Goal', 
           value: `${stepGoal}`, 
           color: 'text-green-500',
+          isEditing: editingGoal === 'step',
           action: () => {
-            const val = prompt('Enter new step goal:', stepGoal.toString());
-            if (val) {
-              const num = parseInt(val);
+            setEditingGoal('step');
+            setTempGoal(stepGoal.toString());
+          },
+          save: () => {
+            const num = parseInt(tempGoal);
+            if (!isNaN(num) && num > 0) {
               setStepGoal(num);
               updateSetting('dailyStepGoal', num);
+              setEditingGoal(null);
             }
           }
         },
@@ -227,6 +239,19 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
       title: 'Account',
       items: [
         { 
+          id: 'onboarding', 
+          icon: HelpCircle, 
+          label: 'Restart Onboarding', 
+          value: '', 
+          color: 'text-indigo-500',
+          action: () => {
+            if (confirm('Are you sure you want to restart the onboarding flow?')) {
+              updateSetting('onboardingCompleted', false);
+              alert('Onboarding will restart on your next visit or refresh.');
+            }
+          }
+        },
+        { 
           id: 'profile', 
           icon: UserIcon, 
           label: 'Edit Profile', 
@@ -266,33 +291,134 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
 
       {/* Settings Sections */}
       <div className="space-y-8">
-        {sections.map((section) => (
+        {/* Daily Goals - More prominent section */}
+        <div className="space-y-4 px-4">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Daily Health Goals</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Water Goal Card */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-500">
+                  <Droplets size={20} />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold">Water Goal</h5>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-tight">Daily Intake</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <input 
+                    type="number" 
+                    value={waterGoal}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val)) {
+                        setWaterGoal(val);
+                        updateSetting('dailyWaterGoal', val);
+                      }
+                    }}
+                    className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 py-3 text-lg font-black focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">ml</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Step Goal Card */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-green-50 dark:bg-green-900/30 rounded-2xl flex items-center justify-center text-green-500">
+                  <Footprints size={20} />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold">Step Goal</h5>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-tight">Activity Target</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <input 
+                    type="number" 
+                    value={stepGoal}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val)) {
+                        setStepGoal(val);
+                        updateSetting('dailyStepGoal', val);
+                      }
+                    }}
+                    className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 py-3 text-lg font-black focus:ring-2 focus:ring-green-500 transition-all"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">steps</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {sections.filter(s => s.title !== 'Goals').map((section) => (
           <div key={section.title} className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-4">{section.title}</h4>
             <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-              {section.items.map((item, idx) => (
-                <button
-                  key={item.id}
-                  onClick={item.action}
-                  className={cn(
-                    "w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors",
-                    idx !== section.items.length - 1 && "border-b border-slate-50 dark:border-slate-800/50"
-                  )}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "h-10 w-10 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800",
-                      item.color
-                    )}>
-                      <item.icon size={20} />
+              {section.items.map((item: any, idx) => (
+                <div key={item.id}>
+                  {item.isEditing ? (
+                    <div className="p-5 space-y-3 bg-slate-50 dark:bg-slate-800/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-800", item.color)}>
+                            <item.icon size={20} />
+                          </div>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">{item.label}</span>
+                        </div>
+                        <button 
+                          onClick={() => setEditingGoal(null)}
+                          className="text-xs font-bold text-slate-400 hover:text-slate-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="number"
+                          value={tempGoal}
+                          onChange={(e) => setTempGoal(e.target.value)}
+                          className="flex-1 bg-white dark:bg-slate-900 border-none rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-green-500"
+                          autoFocus
+                        />
+                        <button 
+                          onClick={item.save}
+                          className="bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-green-500/20"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400">{item.value}</span>
-                    <ChevronRight size={16} className="text-slate-300" />
-                  </div>
-                </button>
+                  ) : (
+                    <button
+                      onClick={item.action}
+                      className={cn(
+                        "w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors",
+                        idx !== section.items.length - 1 && "border-b border-slate-50 dark:border-slate-800/50"
+                      )}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "h-10 w-10 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800",
+                          item.color
+                        )}>
+                          <item.icon size={20} />
+                        </div>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">{item.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-400">{item.value}</span>
+                        <ChevronRight size={16} className="text-slate-300" />
+                      </div>
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>

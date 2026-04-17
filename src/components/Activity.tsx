@@ -21,12 +21,19 @@ export default function Activity() {
   const [exerciseLogs, setExerciseLogs] = useState<any[]>([]);
   const [weeklySteps, setWeeklySteps] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [googleFitToken, setGoogleFitToken] = useState<string | null>(localStorage.getItem('google_fit_token'));
 
   const [customExercise, setCustomExercise] = useState({
     name: '',
     duration: 30,
-    intensity: 'moderate' as 'low' | 'moderate' | 'high'
+    intensity: 'moderate' as 'low' | 'moderate' | 'high',
+    calories: 240
   });
+
+  const calculateCalories = (duration: number, intensity: string) => {
+    const calPerMin = intensity === 'high' ? 12 : intensity === 'moderate' ? 8 : 4;
+    return duration * calPerMin;
+  };
 
   const exerciseLibrary = [
     { name: 'Weightlifting', desc: 'Build strength and muscle mass', icon: Dumbbell, color: 'bg-blue-500', animation: 'pulse' },
@@ -86,31 +93,102 @@ export default function Activity() {
       handleFirestoreError(error, OperationType.LIST, `users/${auth.currentUser?.uid}/activity`);
     });
 
+    const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS' && event.data.tokens?.access_token) {
+        setGoogleFitToken(event.data.tokens.access_token);
+        localStorage.setItem('google_fit_token', event.data.tokens.access_token);
+        syncGoogleFitData(event.data.tokens.access_token);
+      }
+    };
+    window.addEventListener('message', handleOAuthMessage);
+
+    if (googleFitToken) {
+      syncGoogleFitData(googleFitToken);
+    }
+
     return () => {
       unsubscribeGoal();
       unsubscribeExercises();
       unsubscribeActivity();
+      window.removeEventListener('message', handleOAuthMessage);
     };
-  }, [goal]);
+  }, [goal, googleFitToken]);
+
+  const syncGoogleFitData = async (token: string) => {
+    setIsSyncing(true);
+    const now = new Date();
+    const startTimeMillis = startOfDay(now).getTime();
+    const endTimeMillis = now.getTime();
+
+    try {
+      const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          aggregateBy: [
+            { dataSourceId: "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps" },
+            { dataSourceId: "derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended" },
+            { dataSourceId: "derived:com.google.active_minutes:com.google.android.gms:merge_active_minutes" }
+          ],
+          bucketByTime: { durationMillis: endTimeMillis - startTimeMillis },
+          startTimeMillis,
+          endTimeMillis
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('google_fit_token');
+          setGoogleFitToken(null);
+        }
+        throw new Error('Failed to fetch fitness data');
+      }
+
+      const data = await response.json();
+      
+      if (data.bucket && data.bucket[0]) {
+        const datasets = data.bucket[0].dataset;
+        
+        // Steps
+        const stepDataset = datasets.find((d: any) => d.dataSourceId.includes('step_count'));
+        const totalSteps = stepDataset?.point?.[0]?.value?.[0]?.intVal || 0;
+        if (totalSteps > 0) setSteps(totalSteps);
+
+        // Calories
+        const calDataset = datasets.find((d: any) => d.dataSourceId.includes('calories'));
+        const totalCals = Math.round(calDataset?.point?.[0]?.value?.[0]?.fpVal || 0);
+        if (totalCals > 0) setCalories(totalCals);
+
+        // Active Minutes
+        const activeMinDataset = datasets.find((d: any) => d.dataSourceId.includes('active_minutes'));
+        const totalActive = Math.round(activeMinDataset?.point?.[0]?.value?.[0]?.intVal || 0);
+        if (totalActive > 0) setActiveMinutes(totalActive);
+      }
+    } catch (error) {
+      console.error('Error syncing Google Fit data:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleLogExercise = async () => {
     if (!auth.currentUser || !customExercise.name) return;
     
     try {
-      const calPerMin = customExercise.intensity === 'high' ? 12 : customExercise.intensity === 'moderate' ? 8 : 4;
-      const caloriesBurned = customExercise.duration * calPerMin;
-
       await addDoc(collection(db, `users/${auth.currentUser.uid}/exercises`), {
         uid: auth.currentUser.uid,
         exerciseName: customExercise.name,
         duration: customExercise.duration,
         intensity: customExercise.intensity,
-        caloriesBurned,
+        caloriesBurned: customExercise.calories,
         timestamp: new Date().toISOString()
       });
 
       setShowLogModal(false);
-      setCustomExercise({ name: '', duration: 30, intensity: 'moderate' });
+      setCustomExercise({ name: '', duration: 30, intensity: 'moderate', calories: 240 });
     } catch (error) {
       console.error('Failed to log exercise', error);
     }
@@ -119,21 +197,15 @@ export default function Activity() {
   const handleConnectGoogleFit = async () => {
     setIsSyncing(true);
     try {
+      if (googleFitToken) {
+        await syncGoogleFitData(googleFitToken);
+        return;
+      }
+
       const response = await fetch('/api/auth/google-fit/url');
       const { url } = await response.json();
       
-      const authWindow = window.open(url, 'google_fit_oauth', 'width=600,height=700');
-      
-      const handleMessage = (event: MessageEvent) => {
-        if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-          // In a real app, you'd trigger a sync here
-          alert('Successfully connected to Google Fit!');
-          setIsSyncing(false);
-          window.removeEventListener('message', handleMessage);
-        }
-      };
-      
-      window.addEventListener('message', handleMessage);
+      window.open(url, 'google_fit_oauth', 'width=600,height=700');
     } catch (error) {
       console.error('Google Fit connection error:', error);
       setIsSyncing(false);
@@ -382,7 +454,8 @@ export default function Activity() {
                     </div>
                     <button 
                       onClick={() => {
-                        setCustomExercise({ ...customExercise, name: ex.name });
+                        const cal = calculateCalories(customExercise.duration, customExercise.intensity);
+                        setCustomExercise({ ...customExercise, name: ex.name, calories: cal });
                         setShowLibrary(false);
                         setShowLogModal(true);
                       }}
@@ -434,29 +507,59 @@ export default function Activity() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Duration (min)</label>
-                    <input 
-                      type="number" 
-                      value={customExercise.duration}
-                      onChange={(e) => setCustomExercise({ ...customExercise, duration: Number(e.target.value) })}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Duration (min)</label>
+                      <input 
+                        type="number" 
+                        value={customExercise.duration}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setCustomExercise({ 
+                            ...customExercise, 
+                            duration: val,
+                            calories: calculateCalories(val, customExercise.intensity)
+                          });
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Intensity</label>
+                      <select 
+                        value={customExercise.intensity}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setCustomExercise({ 
+                            ...customExercise, 
+                            intensity: val,
+                            calories: calculateCalories(customExercise.duration, val)
+                          });
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500 appearance-none"
+                      >
+                        <option value="low">Low</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Intensity</label>
-                    <select 
-                      value={customExercise.intensity}
-                      onChange={(e) => setCustomExercise({ ...customExercise, intensity: e.target.value as any })}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500 appearance-none"
-                    >
-                      <option value="low">Low</option>
-                      <option value="moderate">Moderate</option>
-                      <option value="high">High</option>
-                    </select>
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Estimated Calories Burned</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        value={customExercise.calories}
+                        onChange={(e) => setCustomExercise({ ...customExercise, calories: Number(e.target.value) })}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500"
+                      />
+                      <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                        kcal
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 ml-2">Calculated based on duration and intensity, but you can override it.</p>
                   </div>
-                </div>
 
                 <button 
                   onClick={handleLogExercise}

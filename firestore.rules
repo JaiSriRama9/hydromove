@@ -46,10 +46,16 @@
 // Fields:
 //   - uid: string (required)
 //   - title: string (required)
-//   - type: string (required, enum: water, walking, bill, custom)
+//   - type: string (required, enum: water, walking, bill, habit, custom)
 //   - dueDate: string (optional, format: date-time)
 //   - isPaid: boolean (optional)
-//   - recurring: boolean (optional)
+//   - completedDates: list (optional, for habits)
+//   - recurrence: string (optional, enum: none, daily, weekly, monthly, yearly, weekday, monthly_specific)
+//   - daysOfMonth: list (optional, list of numbers 1-31)
+//   - scheduledTime: string (optional, HH:mm)
+//   - voiceNoteUrl: string (optional)
+//   - customAlertToneUrl: string (optional)
+//   - amount: number (optional)
 //   - createdAt: string (optional, format: date-time)
 //
 // Collection: /users/{userId}/exercises/{logId}
@@ -83,7 +89,12 @@ service cloud.firestore {
       return data.keys().hasAll(['uid', 'name']) &&
              data.uid is string &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             (!('onboardingCompleted' in data) || data.onboardingCompleted is bool);
+             (!('onboardingCompleted' in data) || data.onboardingCompleted is bool) &&
+             (!('dailyWaterGoal' in data) || data.dailyWaterGoal is number && data.dailyWaterGoal > 0) &&
+             (!('dailyStepGoal' in data) || data.dailyStepGoal is number && data.dailyStepGoal > 0) &&
+             (!('lockMode' in data) || data.lockMode in ['soft', 'hard']) &&
+             (!('homeMode' in data) || data.homeMode is bool) &&
+             (!('reminderInterval' in data) || data.reminderInterval is number && data.reminderInterval > 0);
     }
 
     function isValidHydrationLog(data) {
@@ -109,11 +120,22 @@ service cloud.firestore {
 
     function isValidReminder(data) {
       return data.keys().hasAll(['uid', 'title', 'type']) &&
+             data.keys().hasOnly(['uid', 'title', 'type', 'icon', 'dueDate', 'isPaid', 'completedDates', 'recurring', 'recurrence', 'daysOfMonth', 'scheduledTime', 'voiceNoteUrl', 'customAlertToneUrl', 'amount', 'createdAt']) &&
              data.uid == request.auth.uid &&
              data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
              data.type is string &&
-             (!('recurrence' in data) || data.recurrence in ['none', 'daily', 'weekly', 'monthly', 'yearly']) &&
-             (!('icon' in data) || data.icon is string);
+             (!('isPaid' in data) || data.isPaid is bool) &&
+             (!('completedDates' in data) || data.completedDates == null || data.completedDates is list) &&
+             (!('recurring' in data) || data.recurring is bool) &&
+             (!('recurrence' in data) || data.recurrence in ['none', 'daily', 'weekly', 'monthly', 'yearly', 'weekday', 'monthly_specific']) &&
+             (!('daysOfMonth' in data) || data.daysOfMonth == null || (data.daysOfMonth is list)) &&
+             (!('icon' in data) || data.icon is string) &&
+             (!('dueDate' in data) || data.dueDate == null || data.dueDate is string) &&
+             (!('scheduledTime' in data) || data.scheduledTime == null || data.scheduledTime is string) &&
+             (!('amount' in data) || data.amount == null || data.amount is number) &&
+             (!('voiceNoteUrl' in data) || data.voiceNoteUrl == null || (data.voiceNoteUrl is string && data.voiceNoteUrl.size() < 1048576)) &&
+             (!('customAlertToneUrl' in data) || data.customAlertToneUrl == null || (data.customAlertToneUrl is string && data.customAlertToneUrl.size() < 1048576)) &&
+             (!('createdAt' in data) || data.createdAt is string);
     }
 
     function isValidExerciseLog(data) {

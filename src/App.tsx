@@ -39,6 +39,7 @@ export default function App() {
   const [lockReason, setLockReason] = useState<'hydration' | 'walking' | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [reminderCount, setReminderCount] = useState(0);
+  const [hasOverdueReminders, setHasOverdueReminders] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -77,6 +78,14 @@ export default function App() {
     );
     const unsubscribeReminders = onSnapshot(remindersQuery, (snapshot) => {
       setReminderCount(snapshot.docs.length);
+      
+      // Check for overdue reminders
+      const now = new Date();
+      const overdue = snapshot.docs.some(doc => {
+        const data = doc.data();
+        return data.dueDate && new Date(data.dueDate) < now;
+      });
+      setHasOverdueReminders(overdue);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/reminders`);
     });
@@ -114,7 +123,7 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard onNavigate={setActiveTab} streak={streak} />;
-      case 'hydration': return <Hydration />;
+      case 'hydration': return <Hydration onNavigate={setActiveTab} />;
       case 'activity': return <Activity />;
       case 'mindfulness': return <Mindfulness />;
       case 'reminders': return <Reminders />;
@@ -153,11 +162,25 @@ export default function App() {
             onClick={() => setActiveTab('reminders')}
             className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
           >
-            <Bell size={20} />
+            <Bell size={20} className={cn(hasOverdueReminders && "text-orange-500")} />
             {reminderCount > 0 && (
-              <span className="absolute top-1 right-1 h-4 w-4 bg-orange-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">
+              <motion.span 
+                initial={{ scale: 0 }}
+                animate={{ 
+                  scale: 1,
+                  backgroundColor: hasOverdueReminders ? "#ef4444" : "#f97316" 
+                }}
+                className="absolute top-1 right-1 h-4 w-4 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900"
+              >
+                {hasOverdueReminders && (
+                  <motion.span 
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="absolute inset-0 rounded-full bg-red-500 -z-10"
+                  />
+                )}
                 {reminderCount}
-              </span>
+              </motion.span>
             )}
           </button>
           <button 
@@ -212,7 +235,10 @@ export default function App() {
             >
               <tab.icon size={22} strokeWidth={activeTab === tab.id ? 2.5 : 2} />
               {tab.id === 'reminders' && reminderCount > 0 && (
-                <span className="absolute top-0 right-2 h-4 w-4 bg-orange-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">
+                <span className={cn(
+                  "absolute top-0 right-2 h-4 w-4 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900",
+                  hasOverdueReminders ? "bg-red-500" : "bg-orange-500"
+                )}>
                   {reminderCount}
                 </span>
               )}

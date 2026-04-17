@@ -16,7 +16,7 @@ const steps = [
   },
   {
     title: "Stay Hydrated",
-    description: "We'll help you track your water intake. What's your daily goal?",
+    description: "We'll help you track your water intake and send smart reminders to keep you hydrated.",
     icon: Droplets,
     color: "bg-blue-500",
     field: "dailyWaterGoal",
@@ -25,7 +25,7 @@ const steps = [
   },
   {
     title: "Keep Moving",
-    description: "Movement is key to health. How many steps do you aim for daily?",
+    description: "Track your steps and log your exercises to maintain peak physical activity.",
     icon: Footprints,
     color: "bg-green-500",
     field: "dailyStepGoal",
@@ -33,8 +33,14 @@ const steps = [
     unit: "steps",
   },
   {
-    title: "Mindful Reminders",
-    description: "We'll remind you to stay on track. You can customize these later in settings.",
+    title: "Mindful Moments",
+    description: "Take a break with guided breathing exercises to reduce stress and improve focus.",
+    icon: Brain,
+    color: "bg-indigo-500",
+  },
+  {
+    title: "Smart Reminders",
+    description: "Never miss a task. Set custom alerts for bills, habits, and health goals.",
     icon: Bell,
     color: "bg-orange-500",
   }

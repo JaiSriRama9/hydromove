@@ -335,11 +335,53 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
           <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300 uppercase">Alerts</span>
         </button>
         <button 
-          className="flex flex-col items-center justify-center gap-2 p-4 bg-slate-100 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 transition-all active:scale-95"
+          onClick={() => onNavigate('hydration')}
+          className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-3xl border border-blue-100 dark:border-blue-800/30 transition-all active:scale-95"
         >
-          <TrendingUp className="text-slate-500" size={24} />
-          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase">Trends</span>
+          <Droplets className="text-blue-500" size={24} />
+          <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase">Logs</span>
         </button>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-2">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Recent Activity</h4>
+          <button 
+            onClick={() => onNavigate('hydration')}
+            className="text-[10px] font-bold text-blue-500 uppercase tracking-widest"
+          >
+            History
+          </button>
+        </div>
+        
+        <div className="space-y-2">
+          {recentLogs.length === 0 ? (
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 text-center">
+              <p className="text-xs text-slate-400 italic">No activity logged yet today.</p>
+            </div>
+          ) : (
+            recentLogs.slice(0, 3).map((log, idx) => (
+              <div 
+                key={idx}
+                className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-500">
+                    <Droplets size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{log.amount}ml Water</p>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                      {format(new Date(log.timestamp), 'h:mm a')}
+                    </p>
+                  </div>
+                </div>
+                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

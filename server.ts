@@ -32,6 +32,58 @@ app.get('/api/auth/google-fit/url', (req, res) => {
   res.json({ url });
 });
 
+app.get('/api/auth/spotify/url', (req, res) => {
+  const params = new URLSearchParams({
+    client_id: process.env.SPOTIFY_CLIENT_ID!,
+    response_type: 'code',
+    redirect_uri: `${process.env.APP_URL || 'http://localhost:3000'}/auth/spotify/callback`,
+    scope: 'user-read-private user-read-email playlist-read-private',
+    show_dialog: 'true'
+  });
+  res.json({ url: `https://accounts.spotify.com/authorize?${params.toString()}` });
+});
+
+app.get(['/auth/spotify/callback', '/auth/spotify/callback/'], async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).send('No code provided');
+
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET).toString('base64')
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code as string,
+        redirect_uri: `${process.env.APP_URL || 'http://localhost:3000'}/auth/spotify/callback`
+      })
+    });
+
+    const tokens = await response.json();
+
+    res.send(`
+      <html>
+        <body>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'SPOTIFY_AUTH_SUCCESS', tokens: ${JSON.stringify(tokens)} }, '*');
+              window.close();
+            } else {
+              window.location.href = '/';
+            }
+          </script>
+          <p>Spotify Connected! This window should close automatically.</p>
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Error exchanging code for Spotify tokens:', error);
+    res.status(500).send('Authentication failed');
+  }
+});
+
 app.get(['/auth/callback', '/auth/callback/'], async (req, res) => {
   const { code } = req.query;
   

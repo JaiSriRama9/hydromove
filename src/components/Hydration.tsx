@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, limit, deleteDoc, doc, OperationType, handleFirestoreError } from '../firebase';
-import { Droplets, Plus, Trash2, History, Info, Wind, Thermometer, Activity } from 'lucide-react';
+import { Droplets, Plus, Trash2, History, Info, Wind, Thermometer, Activity, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfDay } from 'date-fns';
 
 import { cn } from '../lib/utils';
 
-export default function Hydration() {
+interface HydrationProps {
+  onNavigate?: (tab: any) => void;
+}
+
+export default function Hydration({ onNavigate }: HydrationProps) {
   const [amount, setAmount] = useState<number>(250);
   const [logs, setLogs] = useState<any[]>([]);
   const [totalToday, setTotalToday] = useState(0);
@@ -123,6 +127,31 @@ export default function Hydration() {
           <Thermometer size={16} className="text-orange-500" />
           <Wind size={16} className="text-blue-400" />
         </div>
+      </div>
+
+      {/* Reminder Shortcut */}
+      <div className="bg-blue-500/10 dark:bg-blue-500/5 p-4 rounded-3xl border border-blue-200/50 dark:border-blue-800/30 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+            <Bell size={16} />
+          </div>
+          <div>
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">Hydration Alerts</h4>
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Set smart reminders for your goal</p>
+          </div>
+        </div>
+        <button 
+          onClick={() => {
+            if (onNavigate) {
+              onNavigate('reminders');
+            } else {
+              alert("Go to the 'Alerts' tab to set your smart water reminders with enforced time gaps!");
+            }
+          }}
+          className="px-4 py-2 bg-blue-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md shadow-blue-500/20"
+        >
+          Set Alert
+        </button>
       </div>
 
       {/* Quick Log Buttons */}

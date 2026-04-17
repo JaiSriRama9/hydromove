@@ -72,7 +72,7 @@
     },
     "Reminder": {
       "title": "Reminder",
-      "description": "Custom reminder or bill alert",
+      "description": "Custom reminder, bill alert, or habit",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
@@ -81,8 +81,14 @@
         "icon": { "type": "string", "description": "Icon name for custom types" },
         "dueDate": { "type": "string", "format": "date-time" },
         "isPaid": { "type": "boolean" },
+        "completedDates": { "type": "array", "items": { "type": "string" }, "description": "Dates when the habit was completed (ISO)" },
         "recurring": { "type": "boolean" },
-        "recurrence": { "type": "string", "enum": ["none", "daily", "weekly", "monthly", "yearly"] },
+        "recurrence": { "type": "string", "enum": ["none", "daily", "weekly", "monthly", "yearly", "weekday", "monthly_specific"] },
+        "daysOfMonth": { "type": "array", "items": { "type": "number" }, "description": "Specific days of the month (1-31)" },
+        "scheduledTime": { "type": "string", "description": "Time of day for the alert (HH:mm)" },
+        "voiceNoteUrl": { "type": "string", "description": "Base64 or URL for voice note attachment" },
+        "customAlertToneUrl": { "type": "string", "description": "Base64 or URL for custom alert tone" },
+        "amount": { "type": "number", "description": "Intake amount for water reminders (ml)" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "title", "type"]

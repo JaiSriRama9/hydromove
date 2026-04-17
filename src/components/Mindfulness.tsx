@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { auth, db, collection, addDoc, query, where, onSnapshot, orderBy, OperationType, handleFirestoreError } from '../firebase';
-import { Brain, Play, Pause, RotateCcw, Wind, CloudRain, Waves, Trees, Timer, CheckCircle2, Music, Volume2, Trophy, Star, Zap, Calendar, Info } from 'lucide-react';
+import { Brain, Play, Pause, RotateCcw, Wind, CloudRain, Waves, Trees, Timer, CheckCircle2, Music, Volume2, Trophy, Star, Zap, Calendar, Info, ExternalLink, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfDay, subDays, isSameDay } from 'date-fns';
 
@@ -208,6 +208,63 @@ export default function Mindfulness() {
   const durations = [5, 10, 15];
   const [showCustomDuration, setShowCustomDuration] = useState(false);
   const [customDuration, setCustomDuration] = useState('');
+
+  // Spotify State
+  const [spotifyToken, setSpotifyToken] = useState<string | null>(localStorage.getItem('spotify_token'));
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
+  const [isFetchingPlaylists, setIsFetchingPlaylists] = useState(false);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SPOTIFY_AUTH_SUCCESS') {
+        const token = event.data.tokens.access_token;
+        setSpotifyToken(token);
+        localStorage.setItem('spotify_token', token);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  useEffect(() => {
+    if (spotifyToken) {
+      fetchPlaylists();
+    }
+  }, [spotifyToken]);
+
+  const fetchPlaylists = async () => {
+    setIsFetchingPlaylists(true);
+    try {
+      const response = await fetch('https://api.spotify.com/v1/me/playlists', {
+        headers: { 'Authorization': `Bearer ${spotifyToken}` }
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          setSpotifyToken(null);
+          localStorage.removeItem('spotify_token');
+        }
+        throw new Error('Failed to fetch playlists');
+      }
+      const data = await response.json();
+      // Filter for "focus" or "relax" or just show top playlists
+      setPlaylists(data.items);
+    } catch (error) {
+      console.error('Error fetching Spotify playlists:', error);
+    } finally {
+      setIsFetchingPlaylists(false);
+    }
+  };
+
+  const handleSpotifyConnect = async () => {
+    try {
+      const response = await fetch('/api/auth/spotify/url');
+      const { url } = await response.json();
+      window.open(url, 'spotify_pivot', 'width=600,height=800');
+    } catch (error) {
+      console.error('Failed to connect Spotify:', error);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-8">
@@ -490,18 +547,94 @@ export default function Mindfulness() {
         </motion.div>
       )}
 
-      {/* Mindfulness Integration */}
-      <div className="bg-slate-100 dark:bg-slate-900 p-6 rounded-[32px] flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 bg-purple-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
-            <Music size={24} />
+      {/* Spotify Integration Section */}
+      <div className="space-y-4">
+        <div className="bg-slate-100 dark:bg-slate-900 p-6 rounded-[32px] flex flex-col gap-6">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/20">
+                <Music size={24} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold">Focus Playlists</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {spotifyToken ? 'Connected to Spotify' : 'Play your favorite focus sounds'}
+                </p>
+              </div>
+            </div>
+            {!spotifyToken ? (
+              <button 
+                onClick={handleSpotifyConnect}
+                className="text-xs font-bold text-green-500 bg-green-500/10 px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-green-500/20 transition-all"
+              >
+                Connect
+              </button>
+            ) : (
+              <button 
+                onClick={() => {
+                  setSpotifyToken(null);
+                  localStorage.removeItem('spotify_token');
+                  setSelectedPlaylist(null);
+                }}
+                className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-red-500 transition-all"
+              >
+                Disconnect
+              </button>
+            )}
           </div>
-          <div>
-            <h4 className="text-sm font-bold">Spotify Integration</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Play your favorite focus playlist</p>
-          </div>
+
+          {spotifyToken && (
+            <div className="space-y-4">
+              {selectedPlaylist ? (
+                <div className="relative group rounded-3xl overflow-hidden shadow-2xl bg-black aspect-video flex flex-col">
+                   <button 
+                     onClick={() => setSelectedPlaylist(null)}
+                     className="absolute top-4 right-4 z-20 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-all"
+                   >
+                     <X size={16} />
+                   </button>
+                   <iframe 
+                     src={`https://open.spotify.com/embed/playlist/${selectedPlaylist}?utm_source=generator&theme=0`} 
+                     width="100%" 
+                     height="100%" 
+                     frameBorder="0" 
+                     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                     loading="lazy"
+                     className="flex-1"
+                   />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {isFetchingPlaylists ? (
+                    [1, 2, 3, 4].map(i => (
+                      <div key={i} className="h-24 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+                    ))
+                  ) : (
+                    playlists.slice(0, 4).map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedPlaylist(p.id)}
+                        className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-green-500 transition-all text-left flex items-center gap-3 group"
+                      >
+                        <img 
+                          src={p.images?.[0]?.url || 'https://picsum.photos/seed/spotify/100/100'} 
+                          alt={p.name} 
+                          className="h-12 w-12 rounded-xl object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="flex-1 overflow-hidden">
+                          <h5 className="text-[11px] font-bold truncate group-hover:text-green-500 transition-colors">{p.name}</h5>
+                          <p className="text-[9px] text-slate-400 truncate tracking-tight">Playlist</p>
+                        </div>
+                        <ChevronRight size={12} className="text-slate-300" />
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <button className="text-xs font-bold text-green-500 uppercase tracking-widest">Connect</button>
       </div>
 
       {/* Achievements Section */}
