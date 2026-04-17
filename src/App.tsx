@@ -40,6 +40,7 @@ export default function App() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [reminderCount, setReminderCount] = useState(0);
   const [hasOverdueReminders, setHasOverdueReminders] = useState(false);
+  const [accentColor, setAccentColor] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -62,6 +63,15 @@ export default function App() {
         const data = docSnap.data();
         setOnboardingCompleted(!!data.onboardingCompleted);
         if (data.streak !== undefined) setStreak(data.streak);
+        
+        const mode = data.themeChoice || 'dynamic';
+        if (mode === 'dynamic' && data.accentColor) {
+          setAccentColor(data.accentColor);
+          document.documentElement.style.setProperty('--brand-color', data.accentColor);
+        } else {
+          setAccentColor(null);
+          document.documentElement.style.removeProperty('--brand-color');
+        }
       } else {
         setOnboardingCompleted(false);
       }
@@ -96,6 +106,18 @@ export default function App() {
     };
   }, [user]);
 
+  // Mouse tracking for atmospheric effects
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      document.documentElement.style.setProperty('--mouse-x', `${x}%`);
+      document.documentElement.style.setProperty('--mouse-y', `${y}%`);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -110,7 +132,7 @@ export default function App() {
         <motion.div 
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="h-12 w-12 border-4 border-green-500 border-t-transparent rounded-full"
+          className="h-12 w-12 border-4 border-brand border-t-transparent rounded-full transition-colors duration-500"
         />
       </div>
     );
@@ -142,16 +164,22 @@ export default function App() {
 
   return (
     <div className={cn(
-      "flex h-screen w-full flex-col bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100",
+      "flex h-screen w-full flex-col bg-slate-50 text-slate-900 transition-colors duration-500 dark:bg-slate-950 dark:text-slate-100",
       "max-w-md mx-auto relative overflow-hidden shadow-2xl border-x border-slate-200 dark:border-slate-800"
     )}>
+      {/* Dynamic Background Glow */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="atmospheric-glow absolute inset-0 opacity-40 dark:opacity-20 transition-all duration-1000" />
+        <div className="absolute -top-[50%] -left-[50%] h-[200%] w-[200%] bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05)_0%,transparent_50%)] animate-pulse" />
+      </div>
+
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800">
+      <header className="flex items-center justify-between px-6 py-4 bg-glass sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center text-white">
+          <div className="h-8 w-8 bg-brand rounded-lg flex items-center justify-center text-white shadow-brand-glow transition-all duration-500">
             <Droplets size={20} />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">HydroMove</h1>
+          <h1 className="text-xl font-bold tracking-tight text-glow">HydroMove</h1>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-lg border border-orange-100 dark:border-orange-800/30">
@@ -192,8 +220,8 @@ export default function App() {
           <button 
             onClick={() => setActiveTab('settings')}
             className={cn(
-              "p-2 rounded-full transition-colors",
-              activeTab === 'settings' ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" : "hover:bg-slate-100 dark:hover:bg-slate-800"
+              "p-2 rounded-full transition-all duration-500",
+              activeTab === 'settings' ? "bg-brand/10 text-brand" : "hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
           >
             <SettingsIcon size={20} />
@@ -220,16 +248,16 @@ export default function App() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-2 py-3 z-40">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-glass px-2 py-3 z-40 rounded-t-[32px]">
         <div className="flex justify-around items-center">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-300 relative",
+                "flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-500 relative",
                 activeTab === tab.id 
-                  ? "text-green-600 dark:text-green-400 scale-110" 
+                  ? "text-brand scale-110" 
                   : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
               )}
             >
@@ -246,7 +274,7 @@ export default function App() {
               {activeTab === tab.id && (
                 <motion.div 
                   layoutId="activeTabIndicator"
-                  className="h-1 w-1 bg-green-500 rounded-full mt-1"
+                  className="h-1 w-1 bg-brand rounded-full mt-1"
                 />
               )}
             </button>

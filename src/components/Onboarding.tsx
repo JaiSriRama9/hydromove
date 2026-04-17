@@ -27,7 +27,7 @@ const steps = [
     title: "Keep Moving",
     description: "Track your steps and log your exercises to maintain peak physical activity.",
     icon: Footprints,
-    color: "bg-green-500",
+    color: "bg-brand",
     field: "dailyStepGoal",
     defaultValue: 10000,
     unit: "steps",
@@ -60,9 +60,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       // Complete onboarding
       if (auth.currentUser) {
         try {
+          const photoURL = auth.currentUser.photoURL;
+          let accentColor = null;
+          if (photoURL) {
+            const { extractDominantColor, adjustColorForAccent } = await import('../lib/utils');
+            const rawColor = await extractDominantColor(photoURL);
+            accentColor = adjustColorForAccent(rawColor);
+          }
+
           await setDoc(doc(db, 'users', auth.currentUser.uid), {
             uid: auth.currentUser.uid,
             name: auth.currentUser.displayName || 'User',
+            photoURL: photoURL,
+            accentColor: accentColor,
+            themeChoice: 'dynamic',
             ...goals,
             onboardingCompleted: true,
             createdAt: new Date().toISOString()

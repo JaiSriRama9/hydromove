@@ -16,6 +16,8 @@
         "lockMode": { "type": "string", "enum": ["soft", "hard"] },
         "homeMode": { "type": "boolean" },
         "reminderInterval": { "type": "number", "description": "Interval in minutes" },
+        "accentColor": { "type": "string", "description": "Hex code for dynamic theme" },
+        "themeChoice": { "type": "string", "enum": ["default", "dynamic"] },
         "onboardingCompleted": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },

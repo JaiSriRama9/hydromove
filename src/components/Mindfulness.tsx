@@ -38,7 +38,7 @@ const breathingPatterns = {
       { type: 'Exhale', duration: 4, scale: 1 },
     ],
     color: 'bg-teal-500',
-    theme: 'from-teal-500 to-emerald-600'
+    theme: 'from-brand to-emerald-600'
   }
 };
 
@@ -202,7 +202,7 @@ export default function Mindfulness() {
     { id: 'breathing', icon: Wind, label: 'Breathing', color: 'bg-blue-500' },
     { id: 'rain', icon: CloudRain, label: 'Rain', color: 'bg-indigo-500' },
     { id: 'ocean', icon: Waves, label: 'Ocean', color: 'bg-cyan-500' },
-    { id: 'forest', icon: Trees, label: 'Forest', color: 'bg-green-500' },
+    { id: 'forest', icon: Trees, label: 'Forest', color: 'bg-brand' },
   ];
 
   const durations = [5, 10, 15];
@@ -275,43 +275,66 @@ export default function Mindfulness() {
         sessionType === 'breathing' 
           ? `bg-gradient-to-br ${breathingPatterns[breathingPattern].theme}` 
           : sessionType === 'rain' ? "bg-indigo-500" : 
-            sessionType === 'ocean' ? "bg-cyan-500" : "bg-green-600"
+            sessionType === 'ocean' ? "bg-cyan-500" : "bg-brand"
       )}>
-        {/* Animated Background */}
-        <motion.div 
-          animate={{ 
-            scale: isPlaying 
-              ? (sessionType === 'breathing' 
-                  ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].scale 
-                  : [1, 1.2, 1]) 
-              : 1,
-            opacity: isPlaying ? [0.3, 0.5, 0.3] : 0.2
-          }}
-          transition={{ 
-            duration: sessionType === 'breathing' 
-              ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].duration 
-              : 8, 
-            ease: "easeInOut" 
-          }}
-          className="absolute inset-0 bg-white/20 rounded-full blur-3xl -m-20"
-        />
+        {/* Animated Breathing Circle */}
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          <AnimatePresence>
+            {isPlaying && sessionType === 'breathing' && (
+              <motion.div
+                key={`${breathingPattern}-${currentPhaseIndex}`}
+                initial={{ scale: currentPhaseIndex === 0 ? 0.8 : breathingPatterns[breathingPattern].phases[(currentPhaseIndex - 1 + breathingPatterns[breathingPattern].phases.length) % breathingPatterns[breathingPattern].phases.length].scale }}
+                animate={{ 
+                  scale: breathingPatterns[breathingPattern].phases[currentPhaseIndex].scale,
+                  backgroundColor: breathingPatterns[breathingPattern].phases[currentPhaseIndex].type === 'Hold' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)'
+                }}
+                transition={{ 
+                  duration: breathingPatterns[breathingPattern].phases[currentPhaseIndex].duration,
+                  ease: "easeInOut"
+                }}
+                className="w-64 h-64 rounded-full blur-2xl"
+              />
+            )}
+          </AnimatePresence>
+
+          <motion.div 
+            animate={{ 
+              scale: isPlaying 
+                ? (sessionType === 'breathing' 
+                    ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].scale 
+                    : [1, 1.1, 1]) 
+                : 1,
+              opacity: isPlaying ? [0.2, 0.4, 0.2] : 0.15
+            }}
+            transition={{ 
+              duration: sessionType === 'breathing' 
+                ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].duration 
+                : 10, 
+              ease: "easeInOut",
+              repeat: sessionType === 'breathing' ? 0 : Infinity
+            }}
+            className="absolute h-[150%] w-[150%] bg-white rounded-full blur-[100px] opacity-10"
+          />
+        </div>
         
         <div className="relative z-10 flex flex-col items-center">
           <AnimatePresence mode="wait">
             {completed ? (
               <motion.div 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center"
               >
-                <CheckCircle2 size={80} className="mb-4" />
-                <h3 className="text-3xl font-black uppercase tracking-widest">Completed</h3>
-                <p className="text-sm font-bold opacity-80 mt-2">You feel more centered now.</p>
+                <div className="h-24 w-24 bg-white/20 rounded-[32px] flex items-center justify-center mb-6">
+                  <CheckCircle2 size={48} />
+                </div>
+                <h3 className="text-3xl font-black uppercase tracking-widest text-center">Session<br/>Complete</h3>
+                <p className="text-sm font-bold opacity-80 mt-4">Mindfulness goal achieved.</p>
                 <button 
                   onClick={resetSession}
-                  className="mt-8 bg-white text-slate-900 px-8 py-3 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+                  className="mt-8 bg-white text-slate-900 px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-xl"
                 >
-                  Start New
+                  End Session
                 </button>
               </motion.div>
             ) : (
@@ -321,30 +344,74 @@ export default function Mindfulness() {
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center"
               >
-                <div className="h-48 w-48 rounded-full border-4 border-white/20 flex items-center justify-center relative">
-                  <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
+                <div className="h-56 w-56 rounded-full flex items-center justify-center relative">
+                  {/* Subtle outer rings */}
+                  <motion.div 
+                    animate={{ scale: isPlaying ? [1, 1.05, 1] : 1 }}
+                    transition={{ duration: 4, repeat: Infinity }}
+                    className="absolute inset-0 rounded-full border border-white/10" 
+                  />
+                  <div className="absolute inset-4 rounded-full border border-white/5" />
+
+                  <svg className="absolute inset-0 -rotate-90 p-2" viewBox="0 0 100 100">
                     <circle 
-                      cx="50" cy="50" r="48" 
+                      cx="50" cy="50" r="46" 
                       fill="none" 
                       stroke="white" 
-                      strokeWidth="4" 
-                      strokeDasharray="301.59"
-                      strokeDashoffset={301.59 * (timeLeft / (duration * 60))}
-                      className="transition-all duration-1000 ease-linear"
+                      strokeWidth="2" 
+                      strokeDasharray="289.02" // 2 * PI * 46
+                      strokeDashoffset={289.02 * (timeLeft / (duration * 60))}
+                      className="transition-all duration-1000 ease-linear opacity-20"
                     />
-                  </svg>
-                  <div className="flex flex-col items-center">
-                    <span className="text-4xl font-black font-mono">{formatTime(timeLeft)}</span>
-                    {isPlaying && sessionType === 'breathing' && (
-                      <motion.span 
-                        key={currentPhaseIndex}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-xs font-bold uppercase tracking-[0.2em] mt-1 text-white/80"
-                      >
-                        {breathingPatterns[breathingPattern].phases[currentPhaseIndex].type}
-                      </motion.span>
+                    {sessionType === 'breathing' && isPlaying && (
+                       <motion.circle 
+                        cx="50" cy="50" r="46" 
+                        fill="none" 
+                        stroke="white" 
+                        strokeWidth="4" 
+                        strokeDasharray="289.02"
+                        initial={{ strokeDashoffset: 289.02 }}
+                        animate={{ strokeDashoffset: 0 }}
+                        transition={{ 
+                          duration: breathingPatterns[breathingPattern].phases[currentPhaseIndex].duration,
+                          ease: "linear"
+                        }}
+                        key={`${breathingPattern}-${currentPhaseIndex}`}
+                        className="opacity-60"
+                      />
                     )}
+                  </svg>
+
+                  <div className="flex flex-col items-center relative z-10">
+                    <motion.div
+                      animate={{ 
+                        scale: isPlaying && sessionType === 'breathing' 
+                          ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].scale 
+                          : 1
+                      }}
+                      transition={{ 
+                        duration: isPlaying && sessionType === 'breathing' 
+                          ? breathingPatterns[breathingPattern].phases[currentPhaseIndex].duration 
+                          : 2,
+                        ease: "easeInOut"
+                      }}
+                      className="flex flex-col items-center"
+                    >
+                      <span className="text-5xl font-black font-mono tracking-tighter">{formatTime(timeLeft)}</span>
+                      {isPlaying && sessionType === 'breathing' && (
+                        <div className="h-6 flex flex-col items-center justify-center">
+                          <motion.span 
+                            key={currentPhaseIndex}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-[10px] font-black uppercase tracking-[0.3em] mt-2 text-white/90"
+                          >
+                            {breathingPatterns[breathingPattern].phases[currentPhaseIndex].type}
+                          </motion.span>
+                          <span className="text-[14px] font-black mt-1">{phaseTimeLeft}s</span>
+                        </div>
+                      )}
+                    </motion.div>
                   </div>
                 </div>
                 
@@ -379,7 +446,7 @@ export default function Mindfulness() {
           className="space-y-6"
         >
           {/* Volume Slider - Always visible when not completed */}
-          <div className="space-y-3 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="space-y-3 bg-glass p-5 rounded-[32px] shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Volume2 size={14} className="text-slate-400" />
@@ -394,7 +461,7 @@ export default function Mindfulness() {
                 max="100" 
                 value={volume}
                 onChange={(e) => setVolume(Number(e.target.value))}
-                className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand"
               />
             </div>
           </div>
@@ -407,7 +474,7 @@ export default function Mindfulness() {
                   <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Duration</h4>
                   <button 
                     onClick={() => setShowCustomDuration(!showCustomDuration)}
-                    className="text-[10px] font-bold text-green-500 uppercase tracking-widest"
+                    className="text-[10px] font-bold text-brand uppercase tracking-widest"
                   >
                     {showCustomDuration ? 'Quick Select' : 'Custom'}
                   </button>
@@ -420,7 +487,7 @@ export default function Mindfulness() {
                         type="number" 
                         value={customDuration}
                         onChange={(e) => setCustomDuration(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 text-lg font-bold focus:outline-none focus:border-green-500 transition-all"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-4 text-lg font-bold focus:outline-none focus:border-brand transition-all"
                         placeholder="Enter minutes..."
                       />
                       <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">min</span>
@@ -434,7 +501,7 @@ export default function Mindfulness() {
                           setShowCustomDuration(false);
                         }
                       }}
-                      className="bg-green-500 text-white px-6 rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all active:scale-95"
+                      className="bg-brand text-white px-6 rounded-2xl font-bold shadow-lg shadow-brand/30 hover:opacity-90 transition-all active:scale-95 duration-500"
                     >
                       Set
                     </button>
@@ -552,7 +619,7 @@ export default function Mindfulness() {
         <div className="bg-slate-100 dark:bg-slate-900 p-6 rounded-[32px] flex flex-col gap-6">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/20">
+              <div className="h-12 w-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand/20 transition-colors duration-500">
                 <Music size={24} />
               </div>
               <div>
@@ -565,7 +632,7 @@ export default function Mindfulness() {
             {!spotifyToken ? (
               <button 
                 onClick={handleSpotifyConnect}
-                className="text-xs font-bold text-green-500 bg-green-500/10 px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-green-500/20 transition-all"
+                className="text-xs font-bold text-brand bg-brand/10 px-4 py-2 rounded-xl uppercase tracking-widest hover:bg-brand/20 transition-all duration-500"
               >
                 Connect
               </button>
@@ -614,7 +681,7 @@ export default function Mindfulness() {
                       <button
                         key={p.id}
                         onClick={() => setSelectedPlaylist(p.id)}
-                        className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-green-500 transition-all text-left flex items-center gap-3 group"
+                        className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-brand transition-all text-left flex items-center gap-3 group"
                       >
                         <img 
                           src={p.images?.[0]?.url || 'https://picsum.photos/seed/spotify/100/100'} 
@@ -623,7 +690,7 @@ export default function Mindfulness() {
                           referrerPolicy="no-referrer"
                         />
                         <div className="flex-1 overflow-hidden">
-                          <h5 className="text-[11px] font-bold truncate group-hover:text-green-500 transition-colors">{p.name}</h5>
+                          <h5 className="text-[11px] font-bold truncate group-hover:text-brand transition-colors">{p.name}</h5>
                           <p className="text-[9px] text-slate-400 truncate tracking-tight">Playlist</p>
                         </div>
                         <ChevronRight size={12} className="text-slate-300" />
@@ -641,7 +708,7 @@ export default function Mindfulness() {
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Achievements</h4>
-          <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Milestones</span>
+          <span className="text-[10px] font-bold text-brand uppercase tracking-widest transition-colors duration-500">Milestones</span>
         </div>
         
         <div className="grid grid-cols-1 gap-4">
@@ -704,7 +771,7 @@ export default function Mindfulness() {
                       "text-sm font-bold",
                       isUnlocked ? "text-slate-900 dark:text-white" : "text-slate-400"
                     )}>{badge.title}</h5>
-                    {isUnlocked && <CheckCircle2 size={14} className="text-green-500" />}
+                    {isUnlocked && <CheckCircle2 size={14} className="text-brand transition-colors duration-500" />}
                   </div>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-3">{badge.desc}</p>
                   
@@ -713,8 +780,8 @@ export default function Mindfulness() {
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}
                       className={cn(
-                        "h-full transition-all",
-                        isUnlocked ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
+                        "h-full transition-all duration-500",
+                        isUnlocked ? "bg-brand" : "bg-slate-300 dark:bg-slate-600"
                       )}
                     />
                   </div>

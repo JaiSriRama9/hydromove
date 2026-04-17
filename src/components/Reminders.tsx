@@ -297,6 +297,9 @@ export default function Reminders() {
   };
 
   const startRecording = async (type: 'voiceNote' | 'alertTone') => {
+    // Check for iframe context early
+    const isIframe = window.self !== window.top;
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
       setPermissionErrorType('unsupported');
       setShowPermissionModal(true);
@@ -354,11 +357,13 @@ export default function Reminders() {
       const errorName = err instanceof Error ? err.name : '';
       const errorMessage = err instanceof Error ? err.message : String(err);
       
+      // Specifically check for OS-level or browser blocks
       if (
         errorName === 'NotAllowedError' || 
         errorName === 'PermissionDeniedError' || 
         errorMessage.toLowerCase().includes('permission denied') ||
-        errorMessage.toLowerCase().includes('not allowed')
+        errorMessage.toLowerCase().includes('not allowed') ||
+        errorMessage.toLowerCase().includes('system')
       ) {
         setPermissionErrorType('denied');
       } else {
@@ -524,10 +529,10 @@ export default function Reminders() {
     if (iconName) return getIconByName(iconName);
     switch (type) {
       case 'water': return <Droplets className="text-blue-500" size={20} />;
-      case 'walking': return <Footprints className="text-green-500" size={20} />;
+      case 'walking': return <Footprints className="text-brand transition-colors duration-500" size={20} />;
       case 'bill': return <CreditCard className="text-orange-500" size={20} />;
       case 'habit': return <Zap className="text-yellow-500" size={20} />;
-      default: return <Bell className="text-purple-500" size={20} />;
+      default: return <Bell className="text-brand transition-colors duration-500" size={20} />;
     }
   };
 
@@ -609,7 +614,7 @@ export default function Reminders() {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsAdding(!isAdding)}
-            className="h-12 w-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-500/20 hover:scale-105 transition-all active:scale-95"
+            className="h-12 w-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand/20 hover:scale-105 transition-all active:scale-95 duration-500"
           >
             {isAdding ? <Plus size={24} className="rotate-45" /> : <Plus size={24} />}
           </button>
@@ -739,7 +744,7 @@ export default function Reminders() {
                         onClick={() => setNewIcon(icon.name)}
                         className={cn(
                           "p-2 rounded-lg transition-all",
-                          newIcon === icon.name ? "bg-green-500 text-white" : "text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                          newIcon === icon.name ? "bg-brand text-white transition-colors duration-500" : "text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                         )}
                       >
                         <icon.icon size={18} />
@@ -788,7 +793,15 @@ export default function Reminders() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-2">Attachments</label>
+                  <div className="flex items-center justify-between ml-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Attachments</label>
+                    {window.self !== window.top && (
+                      <span className="text-[9px] text-blue-500 font-bold uppercase animate-pulse flex items-center gap-1">
+                        <AlertCircle size={10} />
+                        Iframe Mode
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <div className="flex-1 relative group">
                       <div className="flex gap-1">
@@ -896,7 +909,7 @@ export default function Reminders() {
                         className={cn(
                           "h-8 w-8 rounded-lg text-xs font-bold transition-all",
                           newDaysOfMonth.includes(day)
-                            ? "bg-green-500 text-white shadow-sm shadow-green-500/20"
+                            ? "bg-brand text-white shadow-sm shadow-brand/20 transition-colors duration-500"
                             : "bg-white dark:bg-slate-700 text-slate-500 border border-slate-100 dark:border-slate-600 hover:bg-slate-100"
                         )}
                       >
@@ -909,7 +922,7 @@ export default function Reminders() {
 
               <button 
                 onClick={addReminder}
-                className="w-full bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all"
+                className="w-full bg-brand text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand/20 hover:opacity-90 transition-all duration-500"
               >
                 Add Reminder
               </button>
@@ -949,7 +962,7 @@ export default function Reminders() {
                     <div className="flex items-center gap-4">
                       <div className={cn(
                         "h-12 w-12 rounded-2xl flex items-center justify-center transition-all relative overflow-hidden",
-                        isCompletedToday ? "bg-green-500 text-white shadow-lg shadow-green-500/20" : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600"
+                        isCompletedToday ? "bg-brand text-white shadow-lg shadow-brand/20 transition-colors duration-500" : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600"
                       )}>
                         <AnimatePresence mode="wait">
                           <motion.div
@@ -1223,12 +1236,12 @@ export default function Reminders() {
               </div>
               
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                {permissionErrorType === 'denied' ? 'Microphone Access Denied' : 'Recording Not Supported'}
+                {permissionErrorType === 'denied' ? 'Permission Required' : 'Recording Not Supported'}
               </h3>
               
               <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6">
                 {permissionErrorType === 'denied' 
-                  ? "We couldn't access your microphone. This usually happens because permissions are blocked in the preview window or by your system settings." 
+                  ? "We couldn't access your microphone. This is often caused by the browser's security policy for embedded apps or a block in your System Settings (OS level)." 
                   : "Your browser or device doesn't seem to support audio recording. Please try using a modern browser like Chrome or Safari in a new tab."}
               </p>
 

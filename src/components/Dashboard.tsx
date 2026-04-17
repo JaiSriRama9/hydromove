@@ -123,7 +123,7 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
           <p className="text-sm text-slate-500 dark:text-slate-400">Ready for a disciplined day?</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors duration-500">
             <Flame className="text-orange-500" size={18} />
             <span className="text-sm font-bold">{streak}</span>
           </div>
@@ -141,29 +141,29 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onNavigate('hydration')}
-          className="flex flex-col items-start p-5 bg-blue-50 dark:bg-blue-900/20 rounded-3xl border border-blue-100 dark:border-blue-800/30 text-left relative overflow-hidden group"
+          className="flex flex-col items-start p-5 bg-glass rounded-3xl text-left relative overflow-hidden group border-blue-500/10"
         >
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Droplets size={64} />
+            <Droplets size={64} className="text-blue-500" />
           </div>
           <div className="h-10 w-10 bg-blue-500 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg shadow-blue-500/20">
             <Droplets size={20} />
           </div>
-          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Hydration</span>
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Hydration</span>
           <div className="mt-1 flex items-baseline gap-1">
             <span className="text-2xl font-black text-blue-900 dark:text-blue-100">{hydrationProgress}</span>
-            <span className="text-xs font-medium text-blue-600/60 dark:text-blue-400/60">/ {waterGoal}ml</span>
+            <span className="text-xs font-medium text-slate-400">/ {waterGoal}ml</span>
           </div>
-          <div className="mt-4 w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+          <div className="mt-4 w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${Math.min((hydrationProgress / waterGoal) * 100, 100)}%` }}
-              className="h-full bg-blue-500"
+              className="h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
             />
           </div>
           <div className="mt-3 flex items-center gap-1">
             <TrendingUp size={12} className="text-blue-500" />
-            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-tighter">Score: {hydrationScore}</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">Score: {hydrationScore}</span>
           </div>
         </motion.button>
 
@@ -172,35 +172,35 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onNavigate('activity')}
-          className="flex flex-col items-start p-5 bg-green-50 dark:bg-green-900/20 rounded-3xl border border-green-100 dark:border-green-800/30 text-left relative overflow-hidden group"
+          className="flex flex-col items-start p-5 bg-glass rounded-3xl text-left relative overflow-hidden group shadow-brand-glow border-brand/10 transition-all duration-500"
         >
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Footprints size={64} />
+            <Footprints size={64} className="text-brand transition-colors duration-500" />
           </div>
-          <div className="h-10 w-10 bg-green-500 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg shadow-green-500/20">
+          <div className="h-10 w-10 bg-brand rounded-xl flex items-center justify-center text-white mb-4 shadow-brand-glow transition-all duration-500">
             <Footprints size={20} />
           </div>
-          <span className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider">Activity</span>
+          <span className="text-[10px] font-black text-brand uppercase tracking-[0.2em] transition-colors duration-500">Activity</span>
           <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-2xl font-black text-green-900 dark:text-green-100">{currentSteps}</span>
-            <span className="text-xs font-medium text-green-600/60 dark:text-green-400/60">/ {stepGoal}</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-slate-100">{currentSteps}</span>
+            <span className="text-xs font-medium text-slate-400">/ {stepGoal}</span>
           </div>
-          <div className="mt-4 w-full h-2 bg-green-200 dark:bg-green-800 rounded-full overflow-hidden">
+          <div className="mt-4 w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${Math.min((currentSteps / stepGoal) * 100, 100)}%` }}
-              className="h-full bg-green-500"
+              className="h-full bg-brand shadow-[0_0_10px_var(--brand-glow)] transition-all duration-500"
             />
           </div>
           <div className="mt-3 flex items-center gap-1">
             <Flame size={12} className="text-orange-500" />
-            <span className="text-[10px] font-bold text-green-700 dark:text-green-300 uppercase tracking-tighter">245 CAL BURNED</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">Stay Consistent</span>
           </div>
         </motion.button>
       </div>
 
       {/* Daily Insights Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-glass rounded-[32px] overflow-hidden shadow-sm">
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Daily Insights</h4>
@@ -210,7 +210,7 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
                 className={cn(
                   "px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all",
                   activeInsightTab === 'tips' 
-                    ? "bg-white dark:bg-slate-700 text-green-500 shadow-sm" 
+                    ? "bg-white dark:bg-slate-700 text-brand shadow-sm" 
                     : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 )}
               >
@@ -239,7 +239,7 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Water</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="h-1.5 w-1.5 bg-green-500 rounded-full"></div>
+                  <div className="h-1.5 w-1.5 bg-brand rounded-full transition-colors duration-500"></div>
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Steps</span>
                 </div>
               </div>
@@ -251,8 +251,8 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorSteps" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="var(--brand-color, #22c55e)" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="var(--brand-color, #22c55e)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" strokeOpacity={0.5} />
@@ -261,7 +261,7 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
                   />
                   <Area type="monotone" dataKey="water" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorWater)" />
-                  <Area type="monotone" dataKey="steps" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorSteps)" />
+                  <Area type="monotone" dataKey="steps" stroke="var(--brand-color, #22c55e)" strokeWidth={2} fillOpacity={1} fill="url(#colorSteps)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -278,8 +278,8 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
                     className="relative"
                   >
                     <div className="flex items-center gap-2 mb-1.5">
-                      <Brain size={12} className="text-green-500" />
-                      <h5 className="text-[9px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400">Daily Tip</h5>
+                      <Brain size={12} className="text-brand transition-colors duration-500" />
+                      <h5 className="text-[9px] font-bold uppercase tracking-widest text-brand transition-colors duration-500">Daily Tip</h5>
                     </div>
                     <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400 leading-relaxed italic">
                       "{healthTips[currentTipIndex]}"
@@ -349,7 +349,7 @@ export default function Dashboard({ onNavigate, streak }: DashboardProps) {
           <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Recent Activity</h4>
           <button 
             onClick={() => onNavigate('hydration')}
-            className="text-[10px] font-bold text-blue-500 uppercase tracking-widest"
+            className="text-[10px] font-bold text-brand uppercase tracking-widest transition-colors duration-500"
           >
             History
           </button>

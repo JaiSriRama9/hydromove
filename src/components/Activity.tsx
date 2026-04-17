@@ -39,7 +39,7 @@ export default function Activity() {
     { name: 'Weightlifting', desc: 'Build strength and muscle mass', icon: Dumbbell, color: 'bg-blue-500', animation: 'pulse' },
     { name: 'Yoga', desc: 'Flexibility and mindfulness', icon: Wind, color: 'bg-teal-500', animation: 'float' },
     { name: 'HIIT', desc: 'High intensity interval training', icon: Zap, color: 'bg-orange-500', animation: 'shake' },
-    { name: 'Running', desc: 'Cardiovascular endurance', icon: Footprints, color: 'bg-green-500', animation: 'slide' },
+    { name: 'Running', desc: 'Cardiovascular endurance', icon: Footprints, color: 'bg-brand', animation: 'slide' },
   ];
 
   useEffect(() => {
@@ -217,7 +217,7 @@ export default function Activity() {
   return (
     <div className="space-y-6 pb-8">
       {/* Progress Header */}
-      <div className="relative h-64 w-full bg-green-500 rounded-[40px] overflow-hidden shadow-2xl shadow-green-500/30 flex flex-col items-center justify-center text-white">
+      <div className="relative h-64 w-full bg-brand rounded-[40px] overflow-hidden shadow-2xl shadow-brand/30 flex flex-col items-center justify-center text-white transition-colors duration-500">
         {/* Animated Background */}
         <motion.div 
           animate={{ 
@@ -225,7 +225,7 @@ export default function Activity() {
             opacity: [0.2, 0.3, 0.2]
           }}
           transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-          className="absolute inset-0 bg-green-400/30 rounded-full blur-3xl -m-20"
+          className="absolute inset-0 bg-brand/30 rounded-full blur-3xl -m-20"
         />
         
         <div className="relative z-10 flex flex-col items-center">
@@ -292,7 +292,7 @@ export default function Activity() {
           onClick={() => setShowLibrary(true)}
           className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center gap-2 hover:border-green-500 transition-all"
         >
-          <div className="h-10 w-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-500">
+          <div className="h-10 w-10 bg-brand/10 dark:bg-brand/20 rounded-xl flex items-center justify-center text-brand transition-colors duration-500">
             <Dumbbell size={20} />
           </div>
           <span className="text-xs font-bold uppercase tracking-widest">Library</span>
@@ -302,7 +302,7 @@ export default function Activity() {
           onClick={() => setShowLogModal(true)}
           className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center gap-2 hover:border-green-500 transition-all"
         >
-          <div className="h-10 w-10 bg-green-500 rounded-xl flex items-center justify-center text-white">
+          <div className="h-10 w-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand/20 transition-colors duration-500">
             <Plus size={20} />
           </div>
           <span className="text-xs font-bold uppercase tracking-widest">Log Activity</span>
@@ -351,7 +351,7 @@ export default function Activity() {
                     animate={{ height: `${h}%` }}
                     className={cn(
                       "absolute bottom-0 left-0 right-0 rounded-full transition-all",
-                      h >= 100 ? "bg-green-500" : "bg-green-300 dark:bg-green-700"
+                      h >= 100 ? "bg-brand" : "bg-brand/40"
                     )}
                   />
                 </div>
@@ -390,7 +390,7 @@ export default function Activity() {
                 className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between"
               >
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-500">
+                  <div className="h-10 w-10 bg-brand/10 rounded-xl flex items-center justify-center text-brand transition-colors duration-500">
                     <ActivityIcon size={18} />
                   </div>
                   <div>
@@ -502,7 +502,7 @@ export default function Activity() {
                     type="text" 
                     value={customExercise.name}
                     onChange={(e) => setCustomExercise({ ...customExercise, name: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-brand transition-all duration-500"
                     placeholder="e.g. Swimming, Cycling..."
                   />
                 </div>
@@ -521,7 +521,7 @@ export default function Activity() {
                             calories: calculateCalories(val, customExercise.intensity)
                           });
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-brand transition-all duration-500"
                       />
                     </div>
                     <div className="space-y-2">
@@ -536,7 +536,7 @@ export default function Activity() {
                             calories: calculateCalories(customExercise.duration, val)
                           });
                         }}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500 appearance-none"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-brand appearance-none transition-all"
                       >
                         <option value="low">Low</option>
                         <option value="moderate">Moderate</option>
@@ -552,7 +552,7 @@ export default function Activity() {
                         type="number" 
                         value={customExercise.calories}
                         onChange={(e) => setCustomExercise({ ...customExercise, calories: Number(e.target.value) })}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-green-500"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-brand transition-all duration-500"
                       />
                       <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
                         kcal
@@ -563,7 +563,7 @@ export default function Activity() {
 
                 <button 
                   onClick={handleLogExercise}
-                  className="w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-lg shadow-xl shadow-green-500/20 hover:bg-green-600 transition-all active:scale-95 mt-4"
+                  className="w-full bg-brand text-white py-5 rounded-[24px] font-black text-lg shadow-xl shadow-brand/20 hover:opacity-90 transition-all active:scale-95 mt-4 duration-500"
                 >
                   Log Exercise
                 </button>

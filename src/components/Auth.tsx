@@ -68,7 +68,7 @@ export default function Auth({ onLogin }: AuthProps) {
         className="w-full max-w-sm space-y-8 text-center"
       >
         <div className="flex flex-col items-center gap-4">
-          <div className="h-20 w-20 bg-green-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-green-500/20">
+          <div className="h-20 w-20 bg-brand rounded-3xl flex items-center justify-center text-white shadow-xl shadow-brand/20">
             <Droplets size={48} />
           </div>
           <div>
@@ -121,12 +121,12 @@ export default function Auth({ onLogin }: AuthProps) {
                   <input 
                     type="tel" 
                     placeholder="Enter 10 digit number"
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:border-green-500 focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:border-brand focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                   />
                   <button 
-                    className="w-full rounded-2xl bg-green-500 py-4 font-bold text-white shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all"
+                    className="w-full rounded-2xl bg-brand py-4 font-bold text-white shadow-lg shadow-brand/30 hover:opacity-90 transition-all"
                     onClick={handleSendOtp}
                   >
                     Send OTP
@@ -139,20 +139,20 @@ export default function Auth({ onLogin }: AuthProps) {
                     type="text" 
                     placeholder="Enter 123456"
                     maxLength={6}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:border-green-500 focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-white text-center text-2xl tracking-[0.5em] font-bold"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:border-brand focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-white text-center text-2xl tracking-[0.5em] font-bold"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
                   />
                   <button 
                     disabled={isLoggingIn}
-                    className="w-full rounded-2xl bg-green-500 py-4 font-bold text-white shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all disabled:opacity-50"
+                    className="w-full rounded-2xl bg-brand py-4 font-bold text-white shadow-lg shadow-brand/30 hover:opacity-90 transition-all disabled:opacity-50"
                     onClick={handleVerifyOtp}
                   >
                     {isLoggingIn ? 'Verifying...' : 'Verify & Login'}
                   </button>
                   <button 
                     onClick={() => setOtpStep('phone')}
-                    className="w-full text-center text-xs font-medium text-slate-500 hover:text-green-500 transition-colors"
+                    className="w-full text-center text-xs font-medium text-slate-500 hover:text-brand transition-colors"
                   >
                     Change Phone Number
                   </button>
@@ -185,7 +185,7 @@ export default function Auth({ onLogin }: AuthProps) {
               </button>
               <button 
                 onClick={() => setMode('login')}
-                className="w-full text-center text-sm font-medium text-slate-500 hover:text-green-500 transition-colors"
+                className="w-full text-center text-sm font-medium text-slate-500 hover:text-brand transition-colors"
               >
                 Back to Login
               </button>

@@ -87,8 +87,8 @@ export default function DisciplineLock({ reason, onUnlock }: DisciplineLockProps
                     animate={{ scale: 1 }}
                     className="flex flex-col items-center gap-3"
                   >
-                    <CheckCircle2 size={64} className="text-green-500" />
-                    <span className="text-lg font-bold text-green-500">Hydrated!</span>
+                    <CheckCircle2 size={64} className="text-brand transition-colors duration-500" />
+                    <span className="text-lg font-bold text-brand">Hydrated!</span>
                   </motion.div>
                 ) : (
                   <motion.button

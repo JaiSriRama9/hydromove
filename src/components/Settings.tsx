@@ -14,11 +14,16 @@ import {
   HelpCircle,
   ChevronRight,
   Droplets,
-  Footprints
+  Footprints,
+  Camera,
+  Upload,
+  X,
+  Check,
+  Sparkles
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
-import { cn } from '../lib/utils';
+import { cn, extractDominantColor, adjustColorForAccent } from '../lib/utils';
 
 interface SettingsProps {
   isDarkMode: boolean;
@@ -35,8 +40,15 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
   const [reminderInterval, setReminderInterval] = useState(60);
   const [reminderStart, setReminderStart] = useState('08:00');
   const [reminderEnd, setReminderEnd] = useState('22:00');
+  const [themeMode, setThemeMode] = useState<'default' | 'dynamic'>('dynamic');
   const [editingGoal, setEditingGoal] = useState<'water' | 'step' | null>(null);
   const [tempGoal, setTempGoal] = useState<string>('');
+  
+  // Profile editing state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhoto, setEditPhoto] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -55,6 +67,9 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           setReminderInterval(data.reminderInterval || 60);
           setReminderStart(data.reminderStart || '08:00');
           setReminderEnd(data.reminderEnd || '22:00');
+          setThemeMode(data.themeChoice || 'dynamic');
+          setEditName(data.name || auth.currentUser?.displayName || '');
+          setEditPhoto(data.photoURL || null);
         }
       } catch (error) {
         console.error('Failed to fetch profile', error);
@@ -72,8 +87,60 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         [key]: value
       });
+      setProfile((prev: any) => ({ ...prev, [key]: value }));
+      
+      // If we just enabled dynamic theme and have a photo but no color, extract it
+      if (key === 'themeChoice' && value === 'dynamic' && profile?.photoURL && !profile?.accentColor) {
+        const rawColor = await extractDominantColor(profile.photoURL);
+        const accentColor = adjustColorForAccent(rawColor);
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          accentColor: accentColor
+        });
+        setProfile((prev: any) => ({ ...prev, accentColor }));
+      }
     } catch (error) {
       console.error('Failed to update setting', error);
+    }
+  };
+
+  const handleProfilePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) { // 1MB limit for profile pic
+      alert("Image is too large. Please select a photo under 1MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditPhoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveProfile = async () => {
+    if (!auth.currentUser) return;
+    setIsSavingProfile(true);
+    try {
+      let accentColor = profile?.accentColor || null;
+      if (editPhoto && editPhoto !== profile?.photoURL) {
+        const rawColor = await extractDominantColor(editPhoto);
+        accentColor = adjustColorForAccent(rawColor);
+      }
+
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        name: editName,
+        photoURL: editPhoto,
+        accentColor: accentColor
+      });
+      setProfile((prev: any) => ({ ...prev, name: editName, photoURL: editPhoto, accentColor }));
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error('Failed to save profile', error);
+      alert('Failed to save profile. Please try again.');
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -226,6 +293,18 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           action: () => setIsDarkMode(!isDarkMode)
         },
         { 
+          id: 'themeMode', 
+          icon: Sparkles, 
+          label: 'Theme Mode', 
+          value: themeMode === 'dynamic' ? 'AI Dynamic' : 'Default Green', 
+          color: 'text-brand',
+          action: () => {
+            const next = themeMode === 'dynamic' ? 'default' : 'dynamic';
+            setThemeMode(next);
+            updateSetting('themeChoice', next);
+          }
+        },
+        { 
           id: 'notifications', 
           icon: Bell, 
           label: 'Notifications', 
@@ -257,7 +336,7 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           label: 'Edit Profile', 
           value: profile?.name || 'User', 
           color: 'text-slate-500',
-          action: () => alert('Profile editing is coming soon!')
+          action: () => setIsEditingProfile(true)
         },
         { 
           id: 'logout', 
@@ -276,10 +355,19 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
       {/* Profile Header */}
       <div className="flex flex-col items-center gap-4 pt-4">
         <div className="relative">
-          <div className="h-24 w-24 rounded-[32px] bg-green-500 flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-green-500/20">
-            {profile?.name?.[0] || auth.currentUser?.displayName?.[0] || 'U'}
-          </div>
-          <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-center text-green-500 shadow-lg">
+          {profile?.photoURL ? (
+            <img 
+              src={profile.photoURL} 
+              alt="Profile" 
+              className="h-24 w-24 rounded-[32px] object-cover shadow-xl border-4 border-white dark:border-slate-800 transition-all duration-500"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="h-24 w-24 rounded-[32px] bg-brand flex items-center justify-center text-white text-3xl font-black shadow-brand-glow transition-all duration-500">
+              {profile?.name?.[0] || auth.currentUser?.displayName?.[0] || 'U'}
+            </div>
+          )}
+          <div className="absolute -bottom-2 -right-2 h-10 w-10 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-center text-brand transition-colors duration-500 shadow-lg">
             <Shield size={20} />
           </div>
         </div>
@@ -296,7 +384,7 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
           <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Daily Health Goals</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Water Goal Card */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-glass p-6 rounded-[32px] shadow-sm space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-500">
                   <Droplets size={20} />
@@ -326,9 +414,9 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
             </div>
 
             {/* Step Goal Card */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-glass p-6 rounded-[32px] shadow-sm space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-green-50 dark:bg-green-900/30 rounded-2xl flex items-center justify-center text-green-500">
+                <div className="h-10 w-10 bg-brand/10 dark:bg-brand/20 rounded-2xl flex items-center justify-center text-brand">
                   <Footprints size={20} />
                 </div>
                 <div>
@@ -348,7 +436,7 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
                         updateSetting('dailyStepGoal', val);
                       }
                     }}
-                    className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 py-3 text-lg font-black focus:ring-2 focus:ring-green-500 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl px-5 py-3 text-lg font-black focus:ring-2 focus:ring-brand transition-all"
                   />
                   <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">steps</span>
                 </div>
@@ -360,7 +448,7 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
         {sections.filter(s => s.title !== 'Goals').map((section) => (
           <div key={section.title} className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-4">{section.title}</h4>
-            <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="bg-glass rounded-[32px] shadow-sm overflow-hidden transition-all duration-500">
               {section.items.map((item: any, idx) => (
                 <div key={item.id}>
                   {item.isEditing ? (
@@ -430,6 +518,83 @@ export default function Settings({ isDarkMode, setIsDarkMode }: SettingsProps) {
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">HydroMove v1.0.0</p>
         <p className="text-[10px] font-medium text-slate-400">Made with ❤️ for Health Discipline</p>
       </div>
+
+      {/* Edit Profile Modal */}
+      <AnimatePresence>
+        {isEditingProfile && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-[40px] p-8 max-w-sm w-full shadow-2xl border border-white/20 relative overflow-hidden"
+            >
+              <button 
+                onClick={() => setIsEditingProfile(false)}
+                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex flex-col items-center gap-6 mt-4">
+                <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Edit Profile</h3>
+                
+                <div className="relative group">
+                  <div className="h-32 w-32 rounded-[40px] bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-4 border-slate-50 dark:border-slate-800 shadow-inner">
+                    {editPhoto ? (
+                      <img src={editPhoto} alt="Preview" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="text-4xl font-black text-slate-300">
+                        {editName?.[0] || 'U'}
+                      </div>
+                    )}
+                  </div>
+                  <label className="absolute -bottom-2 -right-2 h-12 w-12 bg-brand hover:bg-brand/80 text-white rounded-2xl flex items-center justify-center shadow-lg cursor-pointer transition-all active:scale-90 duration-500">
+                    <Camera size={20} />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoUpload} />
+                  </label>
+                </div>
+
+                <div className="w-full space-y-4">
+                  <div className="space-y-1.5 px-1">
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                    <input 
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-brand rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none text-slate-900 dark:text-white"
+                      placeholder="Enter your name"
+                    />
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <button 
+                      onClick={() => setIsEditingProfile(false)}
+                      className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={saveProfile}
+                      disabled={isSavingProfile || !editName.trim()}
+                      className="flex-1 py-4 bg-brand hover:opacity-90 disabled:opacity-50 text-white rounded-2xl font-bold text-sm shadow-xl shadow-brand/20 transition-all flex items-center justify-center gap-2 duration-500"
+                    >
+                      {isSavingProfile ? (
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Check size={18} />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
