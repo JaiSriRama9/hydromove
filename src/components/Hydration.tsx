@@ -193,6 +193,25 @@ export default function Hydration({ onNavigate }: HydrationProps) {
         </button>
       </div>
 
+      {/* Smart Alerts Banner */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-[32px] border border-blue-100 dark:border-blue-800/30">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <Bell className="text-blue-500" size={20} />
+            <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100 uppercase tracking-widest">Hydration Alerts</h4>
+          </div>
+          <button 
+            onClick={() => onNavigate?.('reminders')}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-blue-600 transition-colors"
+          >
+            Setup Smart Schedule
+          </button>
+        </div>
+        <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
+          Struggling to hit your {goal}ml goal? HydroMove can intelligently split your intake into perfectly timed alerts in the Reminders tab.
+        </p>
+      </div>
+
       {/* History */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2">
